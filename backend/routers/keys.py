@@ -27,7 +27,7 @@ def get_encryption_key() -> bytes:
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=b"api-manager-salt",
+        salt=settings.ENCRYPTION_SALT,
         iterations=100000,
     )
     return urlsafe_b64encode(kdf.derive(settings.API_KEY_ENCRYPTION_KEY))

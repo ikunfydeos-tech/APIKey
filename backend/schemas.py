@@ -13,10 +13,18 @@ class UserCreate(UserBase):
 class UserLogin(BaseModel):
     username: str
     password: str
+    captcha_token: Optional[str] = None
+    captcha_answer: Optional[str] = None
+
+class CaptchaResponse(BaseModel):
+    """验证码响应"""
+    captcha_token: str
+    captcha_image: str  # base64 encoded image
 
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    role: str = "user"
     created_at: datetime
     
     class Config:

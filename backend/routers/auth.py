@@ -1,9 +1,12 @@
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from database import get_db
 from models import User
-from schemas import UserCreate, UserLogin, UserResponse, Token, MessageResponse
+from schemas import UserCreate, UserLogin, UserResponse, Token, MessageResponse, CaptchaResponse
 from auth import (
     verify_password, 
     get_password_hash, 
@@ -11,11 +14,39 @@ from auth import (
     get_current_user
 )
 from config import settings
+from captcha import (
+    generate_captcha_text, 
+    generate_captcha_image, 
+    create_captcha_token,
+    verify_captcha
+)
+import base64
 
 router = APIRouter(prefix="/api", tags=["auth"])
+limiter = Limiter(key_func=get_remote_address)
+
+# 是否启用验证码（生产环境建议启用）
+CAPTCHA_ENABLED = settings.ENV == "production"
+
+@router.get("/captcha", response_model=CaptchaResponse)
+@limiter.limit("10/minute")  # 每分钟最多获取 10 次验证码
+def get_captcha(request: Request):
+    """获取验证码"""
+    text = generate_captcha_text(4)
+    image_bytes = generate_captcha_image(text)
+    token = create_captcha_token(text)
+    
+    # 将图片转换为 base64
+    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+    
+    return CaptchaResponse(
+        captcha_token=token,
+        captcha_image=f"data:image/png;base64,{image_base64}"
+    )
 
 @router.post("/register", response_model=MessageResponse)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")  # 每小时最多注册 5 次
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     # Check if username exists
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -39,7 +70,15 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return MessageResponse(message="User registered successfully", success=True)
 
 @router.post("/login", response_model=Token)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")  # 每分钟最多登录 10 次
+def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
+    # 验证码检查（生产环境）
+    if CAPTCHA_ENABLED:
+        if not user_data.captcha_token or not user_data.captcha_answer:
+            raise HTTPException(status_code=400, detail="验证码不能为空")
+        if not verify_captcha(user_data.captcha_token, user_data.captcha_answer):
+            raise HTTPException(status_code=400, detail="验证码错误或已过期")
+    
     # Find user
     user = db.query(User).filter(User.username == user_data.username).first()
     
@@ -88,6 +127,7 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             username=user.username,
             email=user.email,
             is_active=user.is_active,
+            role=user.role,
             created_at=user.created_at
         )
     )
@@ -99,6 +139,7 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
         username=current_user.username,
         email=current_user.email,
         is_active=current_user.is_active,
+        role=current_user.role,
         created_at=current_user.created_at
     )
 
@@ -107,6 +148,3 @@ def logout(current_user: User = Depends(get_current_user)):
     # In a stateless JWT system, logout is handled client-side
     # Could implement token blacklist here if needed
     return MessageResponse(message="Logged out successfully", success=True)
-
-# Import timedelta for lockout feature
-from datetime import timedelta

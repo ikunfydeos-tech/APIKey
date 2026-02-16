@@ -106,6 +106,14 @@ function displayUsername() {
     if (userStr) {
         const user = JSON.parse(userStr);
         document.getElementById('usernameDisplay').textContent = user.username || '用户';
+        
+        // 如果是管理员，显示管理后台入口
+        if (user.role === 'admin') {
+            const adminNav = document.getElementById('navAdmin');
+            if (adminNav) {
+                adminNav.style.display = 'flex';
+            }
+        }
     }
 }
 
@@ -1054,47 +1062,6 @@ function showToast(message, type = 'success') {
         toast.style.animation = 'slideIn 0.3s ease-out reverse';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
-}
-
-// 同步模型配置
-async function syncModelConfig(source = 'local') {
-    try {
-        showToast('正在同步模型配置...', 'success');
-        
-        const response = await fetch(`${API_BASE_URL}/api/admin/config/sync?source=${source}`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            showToast(data.message, 'success');
-            // 重新加载模型数据
-            await loadProviders();
-        } else {
-            const error = await response.json();
-            showToast(error.detail || '同步失败', 'error');
-        }
-    } catch (error) {
-        console.error('同步配置失败:', error);
-        showToast('同步配置失败', 'error');
-    }
-}
-
-// 获取配置状态
-async function getConfigStatus() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/config/status`, {
-            headers: getAuthHeaders()
-        });
-        
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.error('获取配置状态失败:', error);
-    }
-    return null;
 }
 
 // ============ 自定义服务商功能 ============

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - API密钥管理系统</title>
+    <link rel="stylesheet" href="css/style.css?v=4">
+    <link rel="stylesheet" href="css/dashboard.css?v=4">
+    <link rel="stylesheet" href="css/admin.css?v=4">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon-only admin-logo">
+                    <i data-lucide="shield"></i>
+                </div>
+                <div class="admin-badge">管理后台</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" id="navDashboard" onclick="switchToDashboard()">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>数据概览</span>
+                </a>
+                <a href="#" class="nav-item" id="navUsers" onclick="switchToUsers()">
+                    <i data-lucide="users"></i>
+                    <span>用户管理</span>
+                </a>
+                <a href="#" class="nav-item" id="navProviders" onclick="switchToProviders()">
+                    <i data-lucide="server"></i>
+                    <span>服务商管理</span>
+                </a>
+                <a href="#" class="nav-item" id="navModels" onclick="switchToModels()">
+                    <i data-lucide="cpu"></i>
+                    <span>模型管理</span>
+                </a>
+                <a href="#" class="nav-item" id="navConfig" onclick="switchToConfig()">
+                    <i data-lucide="settings"></i>
+                    <span>配置同步</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="usernameDisplay">管理员</span>
+                        <span class="user-role admin-role">超级管理员</span>
+                    </div>
+                </div>
+                <a href="dashboard.html" class="back-btn">
+                    <i data-lucide="arrow-left"></i>
+                    <span>返回控制台</span>
+                </a>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <i data-lucide="log-out"></i>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-area">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>管理后台</span>
+                        <i data-lucide="chevron-right"></i>
+                        <span id="currentPageName">数据概览</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="topbar-btn" id="refreshBtn" title="刷新" onclick="refreshCurrentPage()">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 数据概览页面 -->
+                <div id="dashboardPage">
+                    <div class="page-title">
+                        <div class="title-info">
+                            <h1>数据概览</h1>
+                            <p>系统运营数据一目了然</p>
+                        </div>
+                    </div>
+
+                    <!-- 统计卡片行 -->
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-number" id="totalUsers">0</div>
+                                <div class="stat-label">总用户数</div>
+                            </div>
+                            <div class="stat-icon blue">
+                                <i data-lucide="users"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-number" id="totalKeys">0</div>
+                                <div class="stat-label">总密钥数</div>
+                            </div>
+                            <div class="stat-icon green">
+                                <i data-lucide="key"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-number" id="activeProviders">0</div>
+                                <div class="stat-label">服务商</div>
+                            </div>
+                            <div class="stat-icon purple">
+                                <i data-lucide="server"></i>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-number" id="newUsersToday">0</div>
+                                <div class="stat-label">今日新增用户</div>
+                            </div>
+                            <div class="stat-icon orange">
+                                <i data-lucide="user-plus"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图表区域 -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>注册趋势</h3>
+                                <span class="chart-subtitle">近 7 天数据</span>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="registrationChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>服务商密钥分布</h3>
+                                <span class="chart-subtitle">按密钥数量统计</span>
+                            </div>
+                            <div class="chart-container chart-pie">
+                                <canvas id="providerChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 用户管理页面 -->
+                <div id="usersPage" style="display: none;">
+                    <div class="page-title">
+                        <div class="title-info">
+                            <h1>用户管理</h1>
+                            <p>管理系统用户和权限</p>
+                        </div>
+                    </div>
+
+                    <!-- 搜索和筛选 -->
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" placeholder="搜索用户名或邮箱..." id="userSearchInput" onkeyup="searchUsers()">
+                        </div>
+                        <div class="filter-group">
+                            <select id="roleFilter" onchange="filterUsers()">
+                                <option value="">全部角色</option>
+                                <option value="admin">管理员</option>
+                                <option value="user">普通用户</option>
+                            </select>
+                            <select id="statusFilter" onchange="filterUsers()">
+                                <option value="">全部状态</option>
+                                <option value="active">已启用</option>
+                                <option value="inactive">已禁用</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 用户表格 -->
+                    <div class="table-section">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>用户名</th>
+                                        <th>邮箱</th>
+                                        <th>角色</th>
+                                        <th>密钥数</th>
+                                        <th>状态</th>
+                                        <th>注册时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="usersPagination">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 服务商管理页面 -->
+                <div id="providersPage" style="display: none;">
+                    <div class="page-title">
+                        <div class="title-info">
+                            <h1>服务商管理</h1>
+                            <p>管理 API 服务商配置</p>
+                        </div>
+                    </div>
+
+                    <div class="table-section">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>服务商</th>
+                                        <th>API地址</th>
+                                        <th>模型数</th>
+                                        <th>密钥数</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="providersTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型管理页面 -->
+                <div id="modelsPage" style="display: none;">
+                    <div class="page-title">
+                        <div class="title-info">
+                            <h1>模型管理</h1>
+                            <p>管理各服务商的模型配置</p>
+                        </div>
+                        <button class="primary-btn" onclick="openAddModelModal()">
+                            <i data-lucide="plus"></i>
+                            <span>添加模型</span>
+                        </button>
+                    </div>
+
+                    <!-- 筛选 -->
+                    <div class="filter-bar">
+                        <select id="modelProviderFilter" onchange="filterModels()">
+                            <option value="">全部服务商</option>
+                        </select>
+                    </div>
+
+                    <div class="table-section">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>服务商</th>
+                                        <th>模型ID</th>
+                                        <th>模型名称</th>
+                                        <th>分类</th>
+                                        <th>上下文</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modelsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 配置同步页面 -->
+                <div id="configPage" style="display: none;">
+                    <div class="page-title">
+                        <div class="title-info">
+                            <h1>配置同步</h1>
+                            <p>同步模型配置数据</p>
+                        </div>
+                    </div>
+
+                    <div class="config-cards">
+                        <div class="config-card">
+                            <div class="config-icon">
+                                <i data-lucide="file-json"></i>
+                            </div>
+                            <div class="config-card-content">
+                                <h3>本地配置同步</h3>
+                                <p>从本地 model_config.json 文件同步模型配置</p>
+                                <button class="primary-btn" onclick="syncConfig('local')">
+                                    <i data-lucide="refresh-cw"></i>
+                                    <span>同步本地配置</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-icon">
+                                <i data-lucide="cloud"></i>
+                            </div>
+                            <div class="config-card-content">
+                                <h3>远程配置同步</h3>
+                                <p>从远程 URL 同步模型配置（需在环境变量配置）</p>
+                                <button class="primary-btn" onclick="syncConfig('remote')">
+                                    <i data-lucide="download"></i>
+                                    <span>同步远程配置</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-status">
+                        <h3>当前配置状态</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">模型总数</span>
+                                <span class="status-value" id="configTotalModels">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">服务商数</span>
+                                <span class="status-value" id="configTotalProviders">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">远程URL</span>
+                                <span class="status-value" id="configRemoteUrl">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 用户详情弹窗 -->
+    <div class="modal-overlay" id="userDetailModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2>用户详情</h2>
+                <button class="modal-close" onclick="closeUserDetailModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="user-detail-header">
+                    <div class="user-detail-info">
+                        <div class="info-row">
+                            <span class="info-label">用户名</span>
+                            <span class="info-value" id="detailUsername">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">邮箱</span>
+                            <span class="info-value" id="detailEmail">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">角色</span>
+                            <span class="info-value" id="detailRole">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">状态</span>
+                            <span class="info-value" id="detailStatus">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">注册时间</span>
+                            <span class="info-value" id="detailCreatedAt">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">最后登录</span>
+                            <span class="info-value" id="detailLastLogin">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-keys-section">
+                    <h3>用户密钥列表</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>服务商</th>
+                                <th>名称</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userKeysTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeUserDetailModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加模型弹窗 -->
+    <div class="modal-overlay" id="addModelModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>添加模型</h2>
+                <button class="modal-close" onclick="closeAddModelModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="modelForm" class="modal-form" onsubmit="event.preventDefault(); saveModel();">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelProviderId">服务商 <span class="required">*</span></label>
+                        <div class="select-wrapper">
+                            <i data-lucide="server"></i>
+                            <select id="modelProviderId" required>
+                                <option value="">请选择服务商</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelId">模型ID <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="cpu"></i>
+                            <input type="text" id="modelId" placeholder="如: gpt-4o" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelName">模型名称</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="type"></i>
+                            <input type="text" id="modelName" placeholder="如: GPT-4o">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modelCategory">分类</label>
+                        <div class="select-wrapper">
+                            <i data-lucide="tag"></i>
+                            <select id="modelCategory">
+                                <option value="chat">对话</option>
+                                <option value="code">代码</option>
+                                <option value="vision">视觉</option>
+                                <option value="long_context">长上下文</option>
+                                <option value="economy">经济</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelContext">上下文窗口</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="file-text"></i>
+                            <input type="text" id="modelContext" placeholder="如: 128K">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddModelModal()">取消</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="plus"></i>
+                        <span>添加</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 确认操作弹窗 -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 id="confirmTitle">确认操作</h2>
+                <button class="modal-close" onclick="closeConfirmModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <p id="confirmMessage">确定要执行此操作吗？</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+                <button type="button" class="btn-danger" id="confirmBtn" onclick="executeConfirm()">
+                    <i data-lucide="check"></i>
+                    <span>确认</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

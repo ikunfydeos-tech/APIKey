@@ -3,8 +3,13 @@ from datetime import timedelta
 import secrets
 
 class Settings:
-    # Database - 从环境变量读取，无默认值
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:123456@localhost:5432/llm_api_manager")
+    # Database - 生产环境必须设置环境变量
+    _database_url = os.getenv("DATABASE_URL")
+    if not _database_url:
+        if os.getenv("ENV", "development") == "production":
+            raise ValueError("DATABASE_URL environment variable is required in production")
+        _database_url = "postgresql://postgres:123456@localhost:5432/llm_api_manager"
+    DATABASE_URL: str = _database_url
     
     # Security - 生产环境必须设置环境变量
     SECRET_KEY: str = os.getenv("SECRET_KEY")
@@ -28,6 +33,9 @@ class Settings:
         if os.getenv("ENV", "development") == "production":
             raise ValueError("ENCRYPTION_KEY environment variable is required in production")
         API_KEY_ENCRYPTION_KEY: bytes = b"dev-encryption-key-32-bytes!!"
+    
+    # Encryption salt - 用于密钥加密的盐值
+    ENCRYPTION_SALT: bytes = os.getenv("ENCRYPTION_SALT", "api-manager-salt-2024").encode()[:16].ljust(16, b'0')
     
     # CORS - 从环境变量读取允许的域名
     _cors_origins = os.getenv("CORS_ORIGINS", "*")

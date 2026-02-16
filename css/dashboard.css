@@ -119,6 +119,23 @@
     color: var(--primary-color);
 }
 
+/* 管理员导航项 */
+.admin-nav {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444 !important;
+    margin-top: 1rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.admin-nav:hover {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+}
+
+.admin-nav i svg {
+    stroke: #ef4444;
+}
+
 /* 侧边栏底部 */
 .sidebar-footer {
     padding: 1rem;
