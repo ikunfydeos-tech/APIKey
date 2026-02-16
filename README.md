@@ -83,7 +83,29 @@
 
 ## 快速开始
 
-### 方式一：本地运行（推荐首次体验）
+### 方式一：一键配置（推荐新手）
+
+```bash
+# 1. 克隆项目
+git clone https://gitcode.com/IkunWindow/APIManagementPlatform.git
+cd APIManagementPlatform
+
+# 2. 运行环境检测脚本（自动检测环境、创建数据库、安装依赖）
+python setup.py
+
+# 3. 启动服务
+python start_all.py
+```
+
+> ⚠️ 运行 `setup.py` 前请确保已安装：
+> - Python 3.10+
+> - PostgreSQL 12+（服务已启动）
+> 
+> 默认数据库密码为 `123456`，可在 `backend/config.py` 中修改
+
+---
+
+### 方式二：手动配置（开发者）
 
 #### 前置要求
 
@@ -96,7 +118,7 @@
 
 ```bash
 git clone https://gitcode.com/IkunWindow/APIManagementPlatform.git
-cd APIManagementPlatform/api-manager
+cd APIManagementPlatform
 ```
 
 #### 步骤 2：安装后端依赖
@@ -414,12 +436,38 @@ api-manager/
 
 ## 常见问题
 
+### Q: 没有安装 PostgreSQL 怎么办？
+
+**A:** 请先安装 PostgreSQL：
+- **Windows**: 下载 [PostgreSQL 安装包](https://www.postgresql.org/download/windows/)，安装时记住设置的密码
+- **macOS**: `brew install postgresql && brew services start postgresql`
+- **Linux**: `sudo apt install postgresql postgresql-contrib`
+
+安装后启动服务，Windows 用户可在"服务"中找到 `postgresql-x64-xx` 并启动。
+
+### Q: 如何创建数据库？
+
+**A:** 方式一：使用 pgAdmin 图形界面创建
+
+方式二：命令行创建
+```bash
+# 连接 PostgreSQL
+psql -U postgres
+
+# 创建数据库
+CREATE DATABASE llm_api_manager;
+
+# 退出
+\q
+```
+
 ### Q: 启动后端报数据库连接错误？
 
 **A:** 请确认：
 1. PostgreSQL 服务已启动
 2. 数据库 `llm_api_manager` 已创建
 3. `backend/config.py` 中的数据库连接配置正确
+4. 密码正确（默认为 `123456`，如果你安装时设置了其他密码，需要修改配置）
 
 ### Q: 前端无法连接后端？
 
@@ -430,6 +478,13 @@ api-manager/
 ### Q: 如何修改加密密钥？
 
 **A:** 修改 `backend/config.py` 中的 `ENCRYPTION_KEY`。注意：修改后之前加密的密钥将无法解密。
+
+### Q: 运行 setup.py 提示错误？
+
+**A:** 常见原因：
+1. PostgreSQL 未安装或未启动
+2. 数据库密码不是默认的 `123456`，需要先修改 `backend/config.py`
+3. Python 版本过低，需要 3.10+
 
 ---
 
