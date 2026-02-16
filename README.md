@@ -197,58 +197,56 @@ python run_frontend.py
 
 ---
 
-### 方式二：Docker 部署（推荐生产环境）
+### 方式三：Docker 部署（推荐生产环境）
 
-#### 使用 Docker Compose（一键部署）
-
-1. 创建 `docker-compose.yml`：
-
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: llm_api_manager
-      POSTGRES_PASSWORD: your_password_here
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
-
-  backend:
-    build: ./backend
-    environment:
-      DATABASE_URL: postgresql://postgres:your_password_here@postgres:5432/llm_api_manager
-      SECRET_KEY: your_secret_key_here
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-
-  frontend:
-    image: nginx:alpine
-    volumes:
-      - ./:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
-```
-
-2. 启动服务：
+#### 一键启动
 
 ```bash
+# 克隆项目
+git clone https://gitcode.com/IkunWindow/APIManagementPlatform.git
+cd APIManagementPlatform
+
+# 启动所有服务（数据库 + 后端 + 前端）
 docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
 ```
 
-3. 访问 `http://localhost`
+启动后访问：`http://localhost`
+
+#### 环境变量配置
+
+创建 `.env` 文件（可选）：
+
+```env
+SECRET_KEY=your-secret-key-here
+ENCRYPTION_KEY=your-encryption-key-here
+```
+
+#### Docker 服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| frontend | 80 | Nginx 前端服务 |
+| backend | 8000 | FastAPI 后端服务 |
+| db | 5432 | PostgreSQL 数据库 |
+
+#### 常用命令
+
+```bash
+# 停止服务
+docker-compose down
+
+# 查看日志
+docker-compose logs -f
+
+# 重新构建
+docker-compose up -d --build
+
+# 进入数据库
+docker-compose exec db psql -U postgres -d llm_api_manager
+```
 
 ---
 
@@ -323,7 +321,7 @@ sudo systemctl start api-manager
 |------|------|------|
 | 使用统计为模拟数据 | 🔄 开发中 | 目前显示的是模拟数据，真实数据接入开发中 |
 | 缺少单元测试 | 📋 计划中 | 后端 API 测试覆盖率为 0 |
-| 缺少 Dockerfile | 📋 计划中 | Docker 部署配置待添加 |
+| ~~缺少 Dockerfile~~ | ~~Docker 部署配置待添加~~ | ~~中~~ ✅ ���完成 |
 | 管理员功能未完善 | 📋 计划中 | 管理员权限校验需要执行数据库迁移 |
 
 ---
