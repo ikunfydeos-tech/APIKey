@@ -5,320 +5,173 @@
 </p>
 
 <p align="center">
-  <strong>🔐 一站式 API 密钥管理平台</strong>
+  <strong>🔐 一站式 API 密钥��管平台</strong>
 </p>
 
 <p align="center">
-  安全存储 · 一键配置 · 集中管理
-</p>
-
-<p align="center">
-  <a href="#功能特性">功能特性</a> •
-  <a href="#快速开始">快速开始</a> •
-  <a href="#部署指南">部署指南</a>
+  注册即用 · 安全加密 · 多端同步
 </p>
 
 ---
 
-## 当前版本
+## 产品介绍
 
-**v0.2.0** - 私有部署版
+**API Key Manager** 是一款专为 AI 开发者打造的 API 密钥托管服务。无需部署，注册即可使用。
 
----
+你是否曾为以下问题烦恼？
 
-## 为什么需要它？
+- 🔑 OpenAI、Claude、Gemini、DeepSeek... 密钥散落各处
+- 😰 明文存��在笔记、Excel 中，担心泄露
+- 📋 每次配置新工具都要翻找复制
+- 🤔 模型 ID 太长记不住
+- 💻 换电脑后密钥要重新整理
 
-如果你是 AI 开发者，可能面临这些问题：
-
-- 🔑 OpenAI、Claude、Gemini... 每个平台都有 API Key，分散存储难以管理
-- 😰 密钥明文保存在笔记、Excel 中，存在泄露风险
-- 📋 每次配置新工具都要翻找密钥、复制粘贴
-- 🤔 模型 ID 太长记不住，`gpt-4o` 还是 `gpt-4-turbo`？
-
-**API Key Manager** 解决这些痛点，让你专注于开发，而非密钥管理。
+**API Key Manager** 帮你一站式解决！
 
 ---
 
-## 功能特性
+## 核心功能
 
-### 🔐 安全存储
-- AES-256 加密存储所有 API 密钥
-- 密钥永不明文显示，只展示预览（如 `sk-abc...xyz`）
-- 支持一键复制，用完即走
+### 🔐 安全加密存储
 
-### 🏷️ 服务商预设
-内置 10+ 主流 AI 服务商配置：
+- **AES-256 加密**：所有密钥采用银行级加密存储
+- **密钥预览**：只显示 `sk-abc...xyz`，永不明文
+- **一键复制**：用完即走，不留痕迹
 
-| 服务商 | Base URL |
+### 🏷️ 内置服务商配置
+
+预设 10+ 主流 AI 平台，开箱即用：
+
+| 服务商 | 支持功能 |
 |--------|----------|
-| OpenAI | `https://api.openai.com/v1` |
-| Anthropic | `https://api.anthropic.com` |
-| Google AI | `https://generativelanguage.googleapis.com` |
-| DeepSeek | `https://api.deepseek.com` |
-| 智谱 AI | `https://open.bigmodel.cn/api/paas/v4` |
-| Moonshot | `https://api.moonshot.cn/v1` |
-| 百度文心 | `https://aip.baidubce.com` |
-| 阿里通义 | `https://dashscope.aliyuncs.com/api/v1` |
-| Azure OpenAI | 自定义配置 |
-| 自定义 | 支持添加任意服务商 |
+| OpenAI | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| Anthropic (Claude) | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| Google AI (Gemini) | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| DeepSeek | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| 智谱 AI | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| Moonshot | ✅ 密钥存储 · 模型选择 · 连接测试 |
+| 百度文心 | ✅ 密钥存储 · 模型选择 |
+| 阿里通义 | ✅ 密钥存储 · 模型选择 |
+| Azure OpenAI | ✅ 密钥存储 · 模型选择 |
+| 自定义服务商 | ✅ 支持 OpenAI 兼容格式 |
 
-### 🤖 模型选择
-- 预设各服务商常用模型
-- 模型分类标签（对话、代码、长文本、多模态）
-- 一键复制模型 ID
+### 🤖 模型预设
 
-### ✅ 测试连接
-- 添加密钥时可测试有效性
-- 实时验证密钥是否可用
+- 预设各平台常用模型 ID
+- 分类标签：对话、代码、长文本、多模态、经济
+- 一键复制模型 ID，无需记忆
+
+### ✅ 连接测试
+
+- 添加密钥时一键验证有效性
+- 实时反馈密钥状态
 
 ### 📊 使用统计
-- 密钥使用概览
-- Token 消耗统计
-- 趋势图表展示
 
-### 👨‍💼 管理员后台
-- 数据概览：用户数、密钥数、服务商统计
-- 用户管理：列表、搜索、角色切换、启用/禁用
-- 服务商管理：启用/禁用服务商
-- 模型管理：添加、删除、筛选模型
-- 配置同步：本地/远程配置同步
+- Token 消耗概览
+- 趋势图表分析
+- 密钥活跃度排行
+
+---
+
+## 版本对比
+
+| 功能 | 免费版 | Pro 版 |
+|------|--------|--------|
+| 密钥数量 | 10 个 | 无限 |
+| 服务商数量 | 10+ | 10+ |
+| 自定义服务商 | ❌ | ✅ |
+| 使用统计 | 基础 | 详细 |
+| 自动备份 | ❌ | 每日 |
+| 多设备同步 | ❌ | ✅ |
+| 密钥历史版本 | ❌ | 7 天 |
+| 额度告警 | ❌ | 3 个 |
+
+---
+
+## 定价
+
+### 免费版
+
+**¥0 / 月**
+
+- 最多 10 个密钥
+- 基础功能
+- 社区支持
+
+[立即注册](#注册)
+
+### Pro 版
+
+**¥19 / 月**
+
+- 无限密钥
+- 全部功能
+- 每日自动备份
+- 多设备同步
+- 优先支持
+
+[立即订阅](#订阅)
 
 ---
 
 ## 快速开始
 
-### 方式一：一键配置（推荐）
+### 1. 注册账户
 
-```bash
-# 运行环境检测脚本（自动检测环境、创建数据库、安装依赖）
-python setup.py
+访问官网，使用邮箱或手机号注册
 
-# 启动服务
-python start_all.py
-```
+### 2. 添加密钥
 
-> ⚠️ 运行 `setup.py` 前请确保已安装：
-> - Python 3.10+
-> - PostgreSQL 12+（服务已启动）
-> 
-> 默认数据库密码为 `123456`，可在 `backend/config.py` 中修改
+选择服务商 → 输入密钥名称和 API Key → 测试连接 → 保存
+
+### 3. 开始使用
+
+随时查看、复制密钥，一键获取模型 ID
 
 ---
 
-### 方式二：手动配置
+## 安全保障
 
-#### 前置要求
-
-| 软件 | 版本要求 | 下载地址 |
-|------|----------|----------|
-| Python | 3.10+ | https://www.python.org/downloads/ |
-| PostgreSQL | 12+ | https://www.postgresql.org/download/ |
-
-#### 步骤 1：安装后端依赖
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-#### 步骤 2：创建数据库
-
-```sql
--- 连接 PostgreSQL
-psql -U postgres
-
--- 创建数据库
-CREATE DATABASE llm_api_manager;
-
--- 退出
-\q
-```
-
-#### 步骤 3：初始化数据库表
-
-```bash
-psql -U postgres -d llm_api_manager -f sql/create_tables.sql
-psql -U postgres -d llm_api_manager -f sql/migrate_add_category.sql
-psql -U postgres -d llm_api_manager -f sql/migrate_add_user_role.sql
-```
-
-#### 步骤 4：配置环境变量
-
-创建 `backend/.env` 文件：
-
-```env
-# 数据库配置
-DATABASE_URL=postgresql://postgres:你的密码@localhost:5432/llm_api_manager
-
-# JWT 密钥（请修改为随机字符串）
-SECRET_KEY=your-secret-key-change-this-in-production
-
-# 加密密钥（请修改为随机字符串）
-ENCRYPTION_KEY=your-encryption-key-change-this
-```
-
-#### 步骤 5：启动服务
-
-```bash
-# 启动后端
-cd backend
-python run_server.py
-
-# 启动前端（另一个终端）
-python run_frontend.py
-```
-
-#### 步骤 6：访问应用
-
-打开浏览器访问：`http://localhost:5500`
-
-默认管理员账户：`admin` / `Admin123456`
-
----
-
-### 方式三：Docker 部署（推荐生产环境）
-
-```bash
-# 启动所有服务
-docker-compose up -d
-
-# 查看服务状态
-docker-compose ps
-```
-
-启动后访问：`http://localhost`
-
-#### 环境变量配置
-
-创建 `.env` 文件：
-
-```env
-SECRET_KEY=your-secret-key-here
-ENCRYPTION_KEY=your-encryption-key-here
-```
-
----
-
-## 部署指南
-
-### 生产环境配置清单
-
-| 配置项 | 说明 | 必须 |
-|--------|------|------|
-| 修改数据库密码 | 不要使用默认密码 | ✅ |
-| 修改 JWT_SECRET_KEY | 使用随机字符串 | ✅ |
-| 修改 ENCRYPTION_KEY | 使用随机字符串 | ✅ |
-| 启用 HTTPS | 使用 Let's Encrypt | ✅ |
-| 配置防火墙 | 只开放 80/443 端口 | ✅ |
-
----
-
-## 技术栈
-
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 前端 | HTML + CSS + JavaScript | 原生 |
-| 后端 | Python + FastAPI | 3.13 / 0.115.0 |
-| 数据库 | PostgreSQL | 18.1 |
-| 认证 | JWT | python-jose |
-| 加密 | bcrypt + Fernet | AES-256 |
-
----
-
-## 项目结构
-
-```
-api-manager/
-├── index.html          # 登录页面
-├── register.html       # 注册页面
-├── dashboard.html      # 主控制台
-├── admin.html          # 管理员后台
-├── terms.html          # 服务条款
-├── css/                # 样式文件
-├── js/                 # 前端逻辑
-├── backend/            # 后端服务
-│   ├── main.py         # FastAPI 入口
-│   ├── config.py       # 配置管理
-│   ├── models.py       # 数据模型
-│   ├── auth.py         # 认证模块
-│   ├── routers/        # API 路由
-│   └── requirements.txt
-└── sql/                # 数据库脚本
-```
-
----
-
-## API 文档
-
-启动后端后访问：
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-### 主要接口
-
-| 接口 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/register` | POST | 用户注册 | ❌ |
-| `/api/login` | POST | 用户登录 | ❌ |
-| `/api/me` | GET | 获取当前用户 | ✅ |
-| `/api/keys` | GET/POST | 密钥列表/添加 | ✅ |
-| `/api/keys/{id}` | PUT/DELETE | 更新/删除密钥 | ✅ |
-| `/api/keys/test` | POST | 测试密钥连接 | ✅ |
-| `/api/admin/users` | GET | 用户管理 | Admin |
-| `/api/admin/providers` | GET | 服务商管理 | Admin |
-| `/api/admin/models` | GET/POST | 模型管理 | Admin |
-
----
-
-## 路线图
-
-### v0.2.0 (当前)
-- [x] 用户注册/登录
-- [x] API 密钥加密存储
-- [x] 服务商预设
-- [x] 模型选择
-- [x] 测试连接
-- [x] 管理员后台
-- [x] Docker 部署支持
-
-### v0.3.0 (计划中)
-- [ ] 使用统计真实数据
-- [ ] 单元测试
-
-### v0.4.0 (计划中)
-- [ ] 团队协作
-- [ ] 权限管理
+| 安全措施 | 说明 |
+|----------|------|
+| 数据加密 | AES-256 加密存储 |
+| 传输加密 | HTTPS 全站加密 |
+| 密钥隔离 | 用户数据相互隔离 |
+| 访问控制 | JWT 身份认证 |
+| 定期备份 | 每日自动备份（Pro 版） |
 
 ---
 
 ## 常见问题
 
-### Q: 没有安装 PostgreSQL 怎么办？
+### Q: 密钥安全吗？
 
-**A:** 请先安装 PostgreSQL：
-- **Windows**: 下载 [PostgreSQL 安装包](https://www.postgresql.org/download/windows/)
-- **macOS**: `brew install postgresql && brew services start postgresql`
-- **Linux**: `sudo apt install postgresql postgresql-contrib`
+**A:** 我们采用 AES-256 加密存储所有密钥，密钥永不明文显示。即使是管理员也无法查看你的密钥原文。
 
-### Q: 如何创建数据库？
+### Q: 你们会使用我的 API 密钥吗？
 
-**A:** 命令行创建：
-```bash
-psql -U postgres
-CREATE DATABASE llm_api_manager;
-\q
-```
+**A:** 不会。我们只负责安全存储，不会调用你的密钥。测试连接功能由你的浏览器直接请求服务商 API。
 
-### Q: 启动后端报数据库连接错误？
+### Q: 免费版够用吗？
 
-**A:** 请确认：
-1. PostgreSQL 服务已启动
-2. 数据库 `llm_api_manager` 已创建
-3. `backend/config.py` 中的数据库连接配置正确
+**A:** 如果你管理不超过 10 个密钥，免费版完全够用。需要更多密钥或高级功能可升级 Pro 版。
 
-### Q: 如何修改加密密钥？
+### Q: 如何取消订阅？
 
-**A:** 修改 `backend/config.py` 中的 `ENCRYPTION_KEY`。注意：修改后之前加密的密钥将无法解密。
+**A:** 随时可在账户设置中取消订阅，已付费的服务期将继续有效。
+
+### Q: 数据会丢失吗？
+
+**A:** Pro 版提供每日自动备份，即使发生意外也能恢复数据。
+
+---
+
+## 技术支持
+
+- 📧 邮箱：support@example.com
+- 💬 微信：APIKeyManager
+- 📝 提交反馈：[在线反馈](#)
 
 ---
 
@@ -326,11 +179,4 @@ CREATE DATABASE llm_api_manager;
 
 **© 2026 API Key Manager. All Rights Reserved.**
 
-本软件为私有软件，未经授权不得复制、修改、传播或用于商业目的。
-
----
-
-## 联系方式
-
-- 提交 Issue: https://gitcode.com/IkunWindow/APIManagementPlatform/issues
-- 仓库地址: https://gitcode.com/IkunWindow/APIManagementPlatform
+本服务为付费托管服务，未经授权不得复制、修改或用于商业目的。
