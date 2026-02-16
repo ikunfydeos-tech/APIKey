@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录页面测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>登录页面测试</h1>
+        <div id="testResults"></div>
+        
+        <h2>测试步骤：</h2>
+        <ol>
+            <li>打开浏览器访问 <code>file:///d:/BaseFiles/2/vscode_Test/api-manager/index.html</code></li>
+            <li>检查页面是否正常显示</li>
+            <li>测试登录功能（用户名：admin，密码：123456）</li>
+            <li>检查表单验证是否正常工作</li>
+            <li>测试记住我功能</li>
+        </ol>
+        
+        <div class="test-result info">
+            <strong>提示：</strong>由于浏览器安全限制，某些功能（如localStorage）可能需要通过HTTP服务器运行才能完全测试。
+        </div>
+    </div>
+
+    <script>
+        const testResults = document.getElementById('testResults');
+        
+        function addTestResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            testResults.appendChild(div);
+        }
+        
+        // 检查文件是否存在
+        function checkFileExists(path) {
+            try {
+                const fs = require('fs');
+                return fs.existsSync(path);
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        // 开始测试
+        addTestResult('开始测试登录页面...', 'info');
+        
+        // 检查关键文件
+        const requiredFiles = [
+            'index.html',
+            'css/style.css',
+            'css/fontawesome.min.css',
+            'css/fonts.css',
+            'js/script.js'
+        ];
+        
+        requiredFiles.forEach(file => {
+            const exists = checkFileExists(`d:/BaseFiles/2/vscode_Test/api-manager/${file}`);
+            if (exists) {
+                addTestResult(`✓ 文件 ${file} 存在`, 'success');
+            } else {
+                addTestResult(`✗ 文件 ${file} 不存在`, 'error');
+            }
+        });
+        
+        addTestResult('测试完成！请按照上面的步骤进行手动测试。', 'info');
+    </script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API密钥管理 - 控制台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon-only">
+                    <i data-lucide="shield-check"></i>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" id="navKeyManage" onclick="switchToKeyManage()">
+                    <i data-lucide="key"></i>
+                    <span>密钥管理</span>
+                </a>
+                <a href="#" class="nav-item" id="navProviderConfig" onclick="openProviderConfigModal()">
+                    <i data-lucide="server"></i>
+                    <span>服务商配置</span>
+                </a>
+                <a href="#" class="nav-item" id="navUsage" onclick="switchToUsage()">
+                    <i data-lucide="bar-chart-2"></i>
+                    <span>使用统计</span>
+                </a>
+                <a href="#" class="nav-item" id="navSettings" onclick="showComingSoon('系统设置')">
+                    <i data-lucide="settings"></i>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="usernameDisplay">用户名</span>
+                        <span class="user-role">管理员</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <i data-lucide="log-out"></i>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-area">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>控制台</span>
+                        <i data-lucide="chevron-right"></i>
+                        <span id="currentPageName">密钥管理</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="topbar-btn" id="refreshBtn" title="刷新" onclick="refreshData()">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                    <button class="topbar-btn" title="通知">
+                        <i data-lucide="bell"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 密钥管理页面 -->
+                <div id="keyManagePage">
+                <!-- 页面标题区 -->
+                <div class="page-title">
+                    <div class="title-info">
+                        <h1>API密钥管理</h1>
+                        <p>集中管理您的所有API密钥，安全便捷</p>
+                    </div>
+                    <button class="primary-btn" onclick="openAddModal()">
+                        <i data-lucide="plus"></i>
+                        <span>添加密钥</span>
+                    </button>
+                </div>
+
+                <!-- 统计卡片行 -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalKeys">0</div>
+                            <div class="stat-label">总密钥数</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i data-lucide="key"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="activeKeys">0</div>
+                            <div class="stat-label">活跃密钥</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i data-lucide="check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalProviders">0</div>
+                            <div class="stat-label">服务商</div>
+                        </div>
+                        <div class="stat-icon purple">
+                            <i data-lucide="server"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="inactiveKeys">0</div>
+                            <div class="stat-label">未激活</div>
+                        </div>
+                        <div class="stat-icon orange">
+                            <i data-lucide="pause-circle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密钥表格区 -->
+                <div class="table-section">
+                    <div class="section-header">
+                        <h2>密钥列表</h2>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
+                                <input type="text" placeholder="搜索密钥..." id="searchInput" onkeyup="searchKeys()">
+                            </div>
+                            <div class="filter-dropdown">
+                                <select id="statusFilter" onchange="filterByStatus()">
+                                    <option value="all">全部状态</option>
+                                    <option value="active">活跃</option>
+                                    <option value="inactive">未激活</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>服务商</th>
+                                    <th>名称</th>
+                                    <th>模型</th>
+                                    <th>密钥预览</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keysTableBody">
+                                <!-- 数据将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                        <div class="empty-state" id="emptyState" style="display: none;">
+                            <i data-lucide="inbox"></i>
+                            <p>暂无API密钥</p>
+                            <span>点击"添加密钥"开始管理您的API</span>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <!-- /密钥管理页面 -->
+
+                <!-- 使用统计页面 -->
+                <div id="usagePage" style="display: none;">
+                <!-- 页面标题区 -->
+                <div class="page-title">
+                    <div class="title-info">
+                        <h1>使用统计</h1>
+                        <p>查看 API 密钥使用情况和消耗分析</p>
+                    </div>
+                </div>
+
+                <!-- 时间范围选择 -->
+                <div class="usage-time-filter">
+                    <button class="time-btn active" data-range="7" onclick="setTimeRange(7)">近 7 天</button>
+                    <button class="time-btn" data-range="30" onclick="setTimeRange(30)">近 30 天</button>
+                    <button class="time-btn" data-range="90" onclick="setTimeRange(90)">近 90 天</button>
+                </div>
+
+                <!-- 统计卡片行 -->
+                <div class="stats-row usage-stats">
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalRequests">0</div>
+                            <div class="stat-label">总请求数</div>
+                        </div>
+                        <div class="stat-icon blue">
+                            <i data-lucide="activity"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalTokens">0</div>
+                            <div class="stat-label">Token 消耗</div>
+                        </div>
+                        <div class="stat-icon green">
+                            <i data-lucide="zap"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="activeKeysUsage">0</div>
+                            <div class="stat-label">活跃密钥</div>
+                        </div>
+                        <div class="stat-icon purple">
+                            <i data-lucide="key"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="stat-number" id="avgResponseTime">0ms</div>
+                            <div class="stat-label">平均响应</div>
+                        </div>
+                        <div class="stat-icon orange">
+                            <i data-lucide="clock"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区域 -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>请求趋势</h3>
+                            <span class="chart-subtitle">近 7 天请求数变化</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="requestsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>服务商分布</h3>
+                            <span class="chart-subtitle">按请求数统计</span>
+                        </div>
+                        <div class="chart-container chart-pie">
+                            <canvas id="providerChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密钥使用排行 -->
+                <div class="table-section">
+                    <div class="section-header">
+                        <h2>密钥使用排行</h2>
+                        <span class="section-subtitle">按请求数排序</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>密钥名称</th>
+                                    <th>服务商</th>
+                                    <th>请求数</th>
+                                    <th>Token 消耗</th>
+                                    <th>最后使用</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usageTableBody">
+                                <!-- 数据将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+                <!-- /使用统计页面 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑密钥弹窗 -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加API密钥</h2>
+                <button class="modal-close" onclick="closeAddModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="keyForm" class="modal-form" novalidate>
+                <input type="hidden" id="keyId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="provider">API服务商 <span class="required">*</span></label>
+                        <div class="select-wrapper">
+                            <i data-lucide="server"></i>
+                            <select id="provider" required onchange="onProviderChange()">
+                                <option value="">请选择服务商</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="model">模型</label>
+                        <div class="select-wrapper">
+                            <i data-lucide="cpu"></i>
+                            <select id="model" onchange="onModelChange()">
+                                <option value="">请先选择服务商</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="modelInputGroup" style="display: none;">
+                        <label for="customModelInput">模型ID <span class="hint-text">（手动输入）</span></label>
+                        <div class="input-wrapper custom-model-input">
+                            <i data-lucide="edit-3"></i>
+                            <input type="text" id="customModelInput" placeholder="如: gpt-4o, claude-3-opus">
+                            <button type="button" class="switch-select-btn" onclick="switchToModelSelect()" title="切换到下拉选择">
+                                <i data-lucide="list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row model-info-row" id="modelInfoRow" style="display: none;">
+                    <div class="model-info-card" id="modelInfoCard">
+                        <div class="model-info-header">
+                            <span class="model-info-name" id="modelInfoName">-</span>
+                            <span class="model-info-id" id="modelInfoId">-</span>
+                        </div>
+                        <div class="model-info-details">
+                            <div class="model-info-item">
+                                <i data-lucide="file-text"></i>
+                                <span>上下文窗口：</span>
+                                <strong id="modelInfoContext">-</strong>
+                            </div>
+                            <div class="model-info-item">
+                                <i data-lucide="tag"></i>
+                                <span>分类：</span>
+                                <strong id="modelInfoCategory">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="keyName">密钥名称 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="tag"></i>
+                            <input type="text" id="keyName" placeholder="如：生产环境密钥" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="apiKey">API密钥 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="key"></i>
+                            <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx" required>
+                            <button type="button" class="toggle-password" onclick="toggleKeyPassword()">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        <div class="api-key-actions">
+                            <button type="button" class="btn-test-connection" id="testConnectionBtn" onclick="testApiConnection()">
+                                测试连接
+                            </button>
+                            <span class="test-hint" id="testHint" style="display: none;">
+                                <i data-lucide="info"></i>
+                                自定义服务商暂不支持测试
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row test-result-row" id="testResultRow" style="display: none;">
+                    <div class="test-result-card" id="testResultCard">
+                        <div class="test-result-icon" id="testResultIcon"></div>
+                        <div class="test-result-content">
+                            <span class="test-result-title" id="testResultTitle">-</span>
+                            <span class="test-result-message" id="testResultMessage">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="keyNote">备注</label>
+                        <div class="input-wrapper textarea-wrapper">
+                            <textarea id="keyNote" placeholder="添加备注信息..." rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddModal()">取消</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="save"></i>
+                        <span>保存</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 确认删除弹窗 -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>确认删除</h2>
+                <button class="modal-close" onclick="closeDeleteModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <p>确定要删除此API密钥吗？</p>
+                <span>此操作不可恢复</span>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeleteModal()">取消</button>
+                <button type="button" class="btn-danger" onclick="confirmDelete()">
+                    <i data-lucide="trash-2"></i>
+                    <span>删除</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义服务商弹窗 -->
+    <div class="modal-overlay" id="customProviderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>添加自定义服务商</h2>
+                <button class="modal-close" onclick="closeCustomProviderModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="customProviderForm" class="modal-form" onsubmit="event.preventDefault(); saveCustomProvider();">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customProviderName">服务商名称 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="server"></i>
+                            <input type="text" id="customProviderName" placeholder="如: Groq、Cohere" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customProviderUrl">API地址 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="link"></i>
+                            <input type="url" id="customProviderUrl" placeholder="https://api.example.com/v1" required>
+                        </div>
+                        <span class="form-hint">OpenAI兼容格式的API基础地址</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="customProviderDesc">描述</label>
+                        <div class="input-wrapper textarea-wrapper">
+                            <textarea id="customProviderDesc" placeholder="服务商描述（可选）" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeCustomProviderModal()">取消</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="plus"></i>
+                        <span>添加</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 服务商配置弹窗 -->
+    <div class="modal-overlay" id="providerConfigModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2>服务商配置</h2>
+                <button class="modal-close" onclick="closeProviderConfigModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body provider-config-body">
+                <div class="provider-list-header">
+                    <span>共 <strong id="providerCount">0</strong> 个服务商</span>
+                    <button class="btn-add-provider" onclick="closeProviderConfigModal(); setTimeout(() => openCustomProviderModal(), 100);">
+                        <i data-lucide="plus"></i>
+                        <span>添加服务商</span>
+                    </button>
+                </div>
+                <div class="provider-list" id="providerConfigList">
+                    <!-- 服务商列表将通过 JS 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/dashboard.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - API密钥管理平台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/register.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- 头部装饰 -->
+            <div class="card-header">
+                <div class="logo">
+                    <i data-lucide="user-plus"></i>
+                </div>
+                <h1>创建账户</h1>
+                <p>加入我们，安全管理您的API密钥</p>
+            </div>
+
+            <!-- 注册表单 -->
+            <form id="registerForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user"></i>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            placeholder="请输入用户名（3-20个字符）"
+                            required
+                            minlength="3"
+                            maxlength="20"
+                            autocomplete="username"
+                        >
+                    </div>
+                    <span class="input-hint">只能包含字母、数字、下划线和连字符</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="mail"></i>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="请输入邮箱地址"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="请输入密码（至少6个字符）"
+                            required
+                            minlength="6"
+                            maxlength="50"
+                            autocomplete="new-password"
+                        >
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar" id="strengthBar"></div>
+                    </div>
+                    <span class="input-hint">建议包含字母、数字和特殊字符</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirmPassword" 
+                            placeholder="请再次输入密码"
+                            required
+                            autocomplete="new-password"
+                        >
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <span>我已阅读并同意 <a href="terms.html" class="terms-link">服务条款</a></span>
+                    </label>
+                </div>
+
+                <button type="submit" class="login-button">
+                    <span class="button-text">注册</span>
+                    <i data-lucide="user-plus"></i>
+                </button>
+            </form>
+
+            <!-- 底部链接 -->
+            <div class="login-footer">
+                <p>已有账户？ <a href="index.html" class="register-link">立即登录</a></p>
+                <div class="divider">
+                    <span>或</span>
+                </div>
+                <div class="social-login">
+                    <button class="social-btn">
+                        <i data-lucide="chrome"></i>
+                    </button>
+                    <button class="social-btn">
+                        <i data-lucide="github"></i>
+                    </button>
+                    <button class="social-btn">
+                        <i data-lucide="message-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 装饰元素 -->
+            <div class="decoration-elements">
+                <div class="circle circle-1"></div>
+                <div class="circle circle-2"></div>
+                <div class="circle circle-3"></div>
+            </div>
+        </div>
+
+        <!-- 侧边信息栏 -->
+        <div class="info-panel">
+            <div class="info-content">
+                <h2>注册即可享受</h2>
+                <ul class="features-list">
+                    <li>
+                        <i data-lucide="key"></i>
+                        <span>集中管理所有API密钥</span>
+                    </li>
+                    <li>
+                        <i data-lucide="cloud"></i>
+                        <span>云端安全存储</span>
+                    </li>
+                    <li>
+                        <i data-lucide="copy"></i>
+                        <span>一键复制快速使用</span>
+                    </li>
+                    <li>
+                        <i data-lucide="settings"></i>
+                        <span>自定义API配置</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="js/register.js"></script>
+    <script>
+        // 初始化 Lucide 图标
+        lucide.createIcons();
+    </script>
+</body>
+</html>

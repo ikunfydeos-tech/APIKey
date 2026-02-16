@@ -1,0 +1,142 @@
+/* 注册页面专用样式 */
+
+/* 输入提示文字 */
+.input-hint {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* 密码强度指示器 */
+.password-strength {
+    margin-top: 0.5rem;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* 密码强度等级颜色 */
+.strength-bar.weak {
+    width: 25%;
+    background: #ef4444;
+}
+
+.strength-bar.medium {
+    width: 50%;
+    background: #f59e0b;
+}
+
+.strength-bar.strong {
+    width: 75%;
+    background: #3b82f6;
+}
+
+.strength-bar.very-strong {
+    width: 100%;
+    background: var(--primary-color);
+}
+
+/* 服务条款链接 */
+.terms-link {
+    color: var(--primary-light);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.terms-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* 表单组间距调整 */
+#registerForm .form-group {
+    margin-bottom: clamp(0.75rem, 2vw, 1rem);
+}
+
+/* 密码匹配状态 */
+.input-wrapper.password-match input {
+    border-color: var(--primary-color);
+}
+
+.input-wrapper.password-mismatch input {
+    border-color: #ef4444;
+}
+
+/* 验证状态图标 */
+.input-wrapper .validation-icon {
+    position: absolute;
+    right: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-wrapper .validation-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.input-wrapper .validation-icon.valid svg {
+    stroke: var(--primary-color);
+}
+
+.input-wrapper .validation-icon.invalid svg {
+    stroke: #ef4444;
+}
+
+/* 错误状态 */
+.form-group.error .input-wrapper input {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.form-group.error .input-hint {
+    color: #ef4444;
+}
+
+/* 成功状态 */
+.form-group.success .input-wrapper input {
+    border-color: var(--primary-color);
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+    .input-hint {
+        font-size: 0.65rem;
+    }
+    
+    .form-options .remember-me span {
+        font-size: clamp(0.7rem, 2vw, 0.75rem);
+    }
+}
+
+/* 注册成功动画 */
+@keyframes successPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.4);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(0, 212, 170, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 212, 170, 0);
+    }
+}
+
+.login-button.success {
+    animation: successPulse 0.6s ease-out;
+    background: linear-gradient(135deg, var(--primary-color), #10b981);
+}
