@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="css/style.css?v=20260217">
     <link rel="stylesheet" href="css/dashboard.css?v=20260217">
     <link rel="stylesheet" href="css/admin.css?v=20260217">
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://registry.npmmirror.com/lucide/latest/files/dist/umd/lucide.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="app-layout">
@@ -349,10 +349,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 日志审计页面 -->
-            <div id="logsPage" class="page hidden">
+                <!-- 日志审计页面 -->
+                <div id="logsPage" class="page hidden">
                 <div class="page-title">
                     <div class="title-info">
                         <h1>日志审计</h1>
@@ -712,21 +711,6 @@
     <!-- Toast 通知 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script>
-        // 获取后台路径
-        fetch('http://localhost:8000/api/admin/path')
-            .then(response => response.json())
-            .then(data => {
-                // 更新返回按钮的链接
-                const backBtn = document.querySelector('.back-btn');
-                if (backBtn) {
-                    backBtn.href = data.admin_path;
-                }
-            })
-            .catch(error => {
-                console.error('获取后台路径失败:', error);
-            });
-    </script>
     <script src="js/admin.js?v=20260217"></script>
     <script>
         lucide.createIcons();

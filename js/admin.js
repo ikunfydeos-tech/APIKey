@@ -123,6 +123,8 @@ async function checkAdminStatus() {
             return;
         }
 
+        // 存储当前登录用户信息
+        window.currentUser = user;
         document.getElementById('usernameDisplay').textContent = user.username;
     } catch (error) {
         console.error('检查管理员状态失败:', error);
@@ -1414,30 +1416,6 @@ function executeHighRiskConfirm() {
 
 // ============ 用户管理增强 ============
 
-async function deleteUser(userId, username) {
-    showHighRiskConfirm(`删除用户 ${username}`, async () => {
-        try {
-            const headers = getAuthHeaders();
-            headers['X-Confirm-Action'] = 'true';
-            
-            const response = await fetch(getAdminApiUrl(`/users/${userId}`), {
-                method: 'DELETE',
-                headers: headers
-            });
-            
-            if (!response.ok) {
-                throw new Error('删除用户失败');
-            }
-            
-            showToast('用户已删除', 'success');
-            loadUsers();
-        } catch (error) {
-            console.error('删除用户失败:', error);
-            showToast(error.message || '删除用户失败', 'error');
-        }
-    });
-}
-
 async function updateUserRole(userId, currentRole) {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     const action = currentRole === 'admin' ? '降级为普通用户' : '提升为管理员';
@@ -1462,33 +1440,6 @@ async function updateUserRole(userId, currentRole) {
         } catch (error) {
             console.error('更新用户角色失败:', error);
             showToast(error.message || '更新用户角色失败', 'error');
-        }
-    });
-}
-
-async function toggleUserStatus(userId, username, isActive) {
-    const action = isActive ? '禁用' : '启用';
-    
-    showHighRiskConfirm(`禁用用户 ${username}`, async () => {
-        try {
-            const headers = getAuthHeaders();
-            headers['X-Confirm-Action'] = 'true';
-            
-            const response = await fetch(getAdminApiUrl(`/users/${userId}/status`), {
-                method: 'PUT',
-                headers: headers,
-                body: JSON.stringify({ is_active: !isActive })
-            });
-            
-            if (!response.ok) {
-                throw new Error('更新用户状态失败');
-            }
-            
-            showToast(`用户已${action === '禁用' ? '禁用' : '启用'}`, 'success');
-            loadUsers();
-        } catch (error) {
-            console.error('更新用户状态失败:', error);
-            showToast(error.message || '更新用户状态失败', 'error');
         }
     });
 }
