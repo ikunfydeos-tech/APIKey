@@ -290,6 +290,7 @@ def get_providers_admin(
             "icon": p.icon,
             "is_active": p.is_active,
             "is_custom": p.is_custom,
+            "created_by": p.created_by,
             "sort_order": p.sort_order,
             "created_at": p.created_at,
             "model_count": model_count,
@@ -297,6 +298,47 @@ def get_providers_admin(
         })
     
     return result
+
+@router.post("/providers")
+def create_provider_admin(
+    provider_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """管理员创建全局服务商（所有用户可见）"""
+    
+    # 检查 name 是否重复
+    if db.query(ApiProvider).filter(ApiProvider.name == provider_data.get("name")).first():
+        raise HTTPException(status_code=400, detail="服务商标识已存在")
+    
+    # 检查 display_name 是否重复
+    if db.query(ApiProvider).filter(ApiProvider.display_name == provider_data.get("display_name")).first():
+        raise HTTPException(status_code=400, detail="服务商名称已存在")
+    
+    # 获取最大排序号
+    max_order = db.query(ApiProvider).count()
+    
+    new_provider = ApiProvider(
+        name=provider_data.get("name"),
+        display_name=provider_data.get("display_name"),
+        base_url=provider_data.get("base_url"),
+        description=provider_data.get("description"),
+        icon=provider_data.get("icon", "link"),
+        is_active=True,
+        is_custom=False,  # 管理员创建的是全局服务商
+        created_by=None,  # 全局服务商不需要创建者
+        sort_order=provider_data.get("sort_order", max_order + 1)
+    )
+    
+    db.add(new_provider)
+    db.commit()
+    db.refresh(new_provider)
+    
+    return {
+        "message": "服务商创建成功",
+        "id": new_provider.id,
+        "success": True
+    }
 
 @router.put("/providers/{provider_id}/status")
 def update_provider_status(

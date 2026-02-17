@@ -1464,6 +1464,33 @@
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 自定义服务商标签样式 */
+.provider-config-item .provider-config-name .custom-tag,
+.provider-config-name .custom-tag,
+.custom-tag {
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    padding: 0.15rem 0.5rem !important;
+    background: rgba(245, 158, 11, 0.15) !important;
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #f59e0b !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    display: inline-block !important;
+    margin-left: 0.3rem !important;
+}
+
+.provider-config-item.custom-provider {
+    background: rgba(245, 158, 11, 0.03);
+}
+
+.provider-config-item.custom-provider:hover {
+    background: rgba(245, 158, 11, 0.08);
 }
 
 .provider-config-stats {

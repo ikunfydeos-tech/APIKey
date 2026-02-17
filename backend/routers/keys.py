@@ -47,7 +47,23 @@ def get_key_preview(api_key: str) -> str:
 
 @router.get("/providers", response_model=List[dict])
 def get_providers(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    providers = db.query(ApiProvider).filter(ApiProvider.is_active == True).order_by(ApiProvider.sort_order).all()
+    """获取服务商列表
+    
+    返回：
+    - 全局服务商（管理员添加，is_custom=False 或 created_by 为 NULL）
+    - 当前用户创建的自定义服务商（created_by = current_user.id）
+    """
+    from sqlalchemy import or_
+    
+    providers = db.query(ApiProvider).filter(
+        ApiProvider.is_active == True,
+        or_(
+            ApiProvider.is_custom == False,  # 全局服务商
+            ApiProvider.is_custom == None,   # 兼容旧数据
+            ApiProvider.created_by == current_user.id  # 用户自己创建的
+        )
+    ).order_by(ApiProvider.sort_order).all()
+    
     return [
         {
             "id": p.id,
@@ -55,7 +71,8 @@ def get_providers(db: Session = Depends(get_db), current_user: User = Depends(ge
             "display_name": p.display_name,
             "base_url": p.base_url,
             "icon": p.icon,
-            "is_custom": p.is_custom
+            "is_custom": p.is_custom,
+            "created_by": p.created_by
         }
         for p in providers
     ]
@@ -108,11 +125,52 @@ def create_custom_provider(
         "is_custom": True
     }
 
+@router.delete("/providers/{provider_id}", response_model=MessageResponse)
+def delete_custom_provider(
+    provider_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """删除自定义服务商（仅允许删除自己创建的）"""
+    
+    provider = db.query(ApiProvider).filter(ApiProvider.id == provider_id).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="服务商不存在")
+    
+    # 只能删除自己创建的自定义服务商
+    if not provider.is_custom:
+        raise HTTPException(status_code=403, detail="无法删除全局服务商")
+    
+    if provider.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="无权删除此服务商")
+    
+    # 检查是否有密钥关联此服务商
+    key_count = db.query(UserApiKey).filter(UserApiKey.provider_id == provider_id).count()
+    if key_count > 0:
+        raise HTTPException(status_code=400, detail=f"该服务商下有 {key_count} 个密钥，请先删除密钥")
+    
+    db.delete(provider)
+    db.commit()
+    
+    return MessageResponse(message="服务商已删除", success=True)
+
 @router.get("/models", response_model=List[ApiModelResponse])
 def get_all_models(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get all available models"""
+    """Get all available models for current user
+    
+    只返回用户可见服务商下的模型：
+    - 全局服务商（管理员添加）
+    - 用户自己创建的自定义服务商
+    """
+    from sqlalchemy import or_
+    
     models = db.query(ApiModel).join(ApiProvider).filter(
-        ApiProvider.is_active == True
+        ApiProvider.is_active == True,
+        or_(
+            ApiProvider.is_custom == False,
+            ApiProvider.is_custom == None,
+            ApiProvider.created_by == current_user.id
+        )
     ).order_by(ApiProvider.sort_order, ApiModel.sort_order).all()
     return models
 

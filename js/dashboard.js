@@ -140,7 +140,12 @@ async function loadProviders() {
             const data = await providersRes.json();
             providers = {};
             data.forEach(p => {
-                providers[p.id] = { name: p.display_name, icon: getLucideIcon(p.icon) };
+                providers[p.id] = { 
+                    name: p.display_name, 
+                    icon: getLucideIcon(p.icon),
+                    is_custom: p.is_custom,
+                    created_by: p.created_by
+                };
             });
             renderProviderSelect(data);
         } else {
@@ -1265,14 +1270,18 @@ async function renderProviderConfigList() {
     Object.entries(providers).forEach(([id, provider]) => {
         const keyCount = providerKeyCount[id] || 0;
         const modelCount = providerModelCount[id] || 0;
+        const isCustom = provider.is_custom;
+        
+        // 自定义服务商标签
+        const customTag = isCustom ? '<span class="custom-tag">私有</span>' : '';
         
         html += `
-            <div class="provider-config-item">
+            <div class="provider-config-item ${isCustom ? 'custom-provider' : ''}">
                 <div class="provider-config-icon">
                     <i data-lucide="${provider.icon}"></i>
                 </div>
                 <div class="provider-config-info">
-                    <div class="provider-config-name">${provider.name}</div>
+                    <div class="provider-config-name">${provider.name} ${customTag}</div>
                     <div class="provider-config-stats">
                         <span><i data-lucide="key"></i> ${keyCount} 个密钥</span>
                         <span><i data-lucide="cpu"></i> ${modelCount} 个模型</span>
@@ -1282,6 +1291,9 @@ async function renderProviderConfigList() {
                     <button class="action-btn" onclick="addKeyForProvider(${id})" title="添加密钥">
                         <i data-lucide="plus"></i>
                     </button>
+                    ${isCustom ? `<button class="action-btn danger" onclick="deleteCustomProvider(${id})" title="删除服务商">
+                        <i data-lucide="trash-2"></i>
+                    </button>` : ''}
                 </div>
             </div>
         `;
@@ -1290,6 +1302,45 @@ async function renderProviderConfigList() {
     listContainer.innerHTML = html;
     document.getElementById('providerCount').textContent = Object.keys(providers).length;
     lucide.createIcons();
+}
+
+// 删除自定义服务商
+async function deleteCustomProvider(providerId) {
+    const provider = providers[providerId];
+    if (!provider) return;
+    
+    // 检查是否有关联的密钥
+    const keyCount = apiKeys.filter(k => k.provider_id == providerId).length;
+    if (keyCount > 0) {
+        showToast(`该服务商下有 ${keyCount} 个密钥，请先删除密钥`, 'error');
+        return;
+    }
+    
+    // 确认删除
+    if (!confirm(`确定要删除服务商"${provider.name}"吗？此操作不可恢复。`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/keys/providers/${providerId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('服务商已删除', 'success');
+            // 重新加载服务商列表
+            await loadProviders();
+            renderProviderConfigList();
+        } else {
+            showToast(result.detail || '删除失败', 'error');
+        }
+    } catch (error) {
+        console.error('删除服务商失败:', error);
+        showToast('删除服务商失败', 'error');
+    }
 }
 
 // 为指定服务商添加密钥
