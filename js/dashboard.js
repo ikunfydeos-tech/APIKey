@@ -734,6 +734,26 @@ function openAddModal() {
     editingKeyId = null;
     document.getElementById('modalTitle').textContent = '添加API密钥';
     keyForm.reset();
+    // 完整重置测试连接结果区域
+    const testResultRow = document.getElementById('testResultRow');
+    const testResultCard = document.getElementById('testResultCard');
+    const testResultIcon = document.getElementById('testResultIcon');
+    const testResultTitle = document.getElementById('testResultTitle');
+    const testResultMessage = document.getElementById('testResultMessage');
+    
+    testResultRow.style.display = 'none';
+    testResultCard.className = 'test-result-card';
+    testResultIcon.innerHTML = '';
+    testResultTitle.textContent = '-';
+    testResultMessage.textContent = '-';
+    
+    document.getElementById('modelInfoRow').style.display = 'none';
+    // 重置测试按钮状态
+    const testBtn = document.getElementById('testConnectionBtn');
+    if (testBtn) {
+        testBtn.disabled = false;
+        testBtn.classList.remove('testing');
+    }
     addModal.classList.add('active');
     lucide.createIcons();
 }
@@ -743,6 +763,20 @@ function closeAddModal() {
     addModal.classList.remove('active');
     keyForm.reset();
     editingKeyId = null;
+    // 完整重置测试连接结果区域
+    const testResultRow = document.getElementById('testResultRow');
+    const testResultCard = document.getElementById('testResultCard');
+    const testResultIcon = document.getElementById('testResultIcon');
+    const testResultTitle = document.getElementById('testResultTitle');
+    const testResultMessage = document.getElementById('testResultMessage');
+    
+    testResultRow.style.display = 'none';
+    testResultCard.className = 'test-result-card';
+    testResultIcon.innerHTML = '';
+    testResultTitle.textContent = '-';
+    testResultMessage.textContent = '-';
+    
+    document.getElementById('modelInfoRow').style.display = 'none';
 }
 
 // 编辑密钥

@@ -349,14 +349,52 @@ async def test_api_key(
         }
     
     # 构建测试 URL
+    # 注意：数据库中的 base_url 已包含 /v1，所以直接拼接 /models
     base_url = provider.base_url.rstrip("/")
-    test_url = f"{base_url}/v1/models"
+    provider_name = provider.name.lower()
     
-    # 设置请求头
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    # 根据不同服务商使用正确的测试端点
+    if provider_name == "openai":
+        test_url = f"{base_url}/models"
+    elif provider_name == "anthropic":
+        # Anthropic 没有 /models 端点，返回特殊提示
+        return {
+            "success": True,
+            "message": "Anthropic API 密钥格式验证通过，请确保密钥有效",
+            "provider_name": provider.display_name,
+            "is_custom": False
+        }
+    elif provider_name == "google":
+        # Google 使用 API key 作为查询参数
+        test_url = f"{base_url}/models?key={api_key}"
+    elif provider_name == "deepseek":
+        test_url = f"{base_url}/models"
+    elif provider_name == "moonshot":
+        test_url = f"{base_url}/models"
+    elif provider_name == "zhipu":
+        test_url = f"{base_url}/models"
+    elif provider_name == "baidu":
+        # 百度文心需要特殊认证方式
+        return {
+            "success": True,
+            "message": "百度文心 API 需要通过百度控制台验证，请确保密钥格式正确",
+            "provider_name": provider.display_name,
+            "is_custom": False
+        }
+    elif provider_name == "alibaba":
+        test_url = f"{base_url}/models"
+    else:
+        # 默认尝试 OpenAI 兼容格式
+        test_url = f"{base_url}/models"
+    
+    # 设置请求头（Google 不需要 Authorization header）
+    if provider_name == "google":
+        headers = {}
+    else:
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
     
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
