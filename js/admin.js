@@ -540,9 +540,12 @@ async function toggleUserRole(userId, currentRole) {
     
     showConfirm(`确定要${action}吗？`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/users/${userId}/role`), {
                 method: 'PUT',
-                headers: getAuthHeaders(),
+                headers: headers,
                 body: JSON.stringify({ role: newRole })
             });
 
@@ -564,9 +567,12 @@ async function toggleUserStatus(userId, currentActive) {
     
     showConfirm(`确定要${action}该用户吗？`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/users/${userId}/status`), {
                 method: 'PUT',
-                headers: getAuthHeaders(),
+                headers: headers,
                 body: JSON.stringify({ is_active: !currentActive })
             });
 
@@ -878,9 +884,12 @@ async function saveModel() {
 async function deleteModel(modelId, modelName) {
     showConfirm(`确定要删除模型 "${modelName}" 吗？`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/models/${modelId}`), {
                 method: 'DELETE',
-                headers: getAuthHeaders()
+                headers: headers
             });
 
             if (response.ok) {
@@ -1085,9 +1094,12 @@ function closeMembershipUpgradeModal() {
 
 async function upgradeMembership(userId, tier) {
     try {
+        const headers = getAuthHeaders();
+        headers['X-Confirm-Action'] = 'true';
+        
         const response = await fetch(getAdminApiUrl(`/users/${userId}/membership`), {
             method: 'PUT',
-            headers: getAuthHeaders(),
+            headers: headers,
             body: JSON.stringify({ membership_tier: tier })
         });
         
@@ -1405,9 +1417,12 @@ function executeHighRiskConfirm() {
 async function deleteUser(userId, username) {
     showHighRiskConfirm(`删除用户 ${username}`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/users/${userId}`), {
                 method: 'DELETE',
-                headers: getAuthHeaders()
+                headers: headers
             });
             
             if (!response.ok) {
@@ -1429,9 +1444,12 @@ async function updateUserRole(userId, currentRole) {
     
     showHighRiskConfirm(`修改用户角色 - ${action}`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/users/${userId}/role`), {
                 method: 'PUT',
-                headers: getAuthHeaders(),
+                headers: headers,
                 body: JSON.stringify({ role: newRole })
             });
             
@@ -1453,9 +1471,12 @@ async function toggleUserStatus(userId, username, isActive) {
     
     showHighRiskConfirm(`禁用用户 ${username}`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/users/${userId}/status`), {
                 method: 'PUT',
-                headers: getAuthHeaders(),
+                headers: headers,
                 body: JSON.stringify({ is_active: !isActive })
             });
             
@@ -1477,9 +1498,12 @@ async function toggleUserStatus(userId, username, isActive) {
 async function deleteProvider(providerId, providerName) {
     showHighRiskConfirm(`删除服务商 ${providerName}`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/providers/${providerId}`), {
                 method: 'DELETE',
-                headers: getAuthHeaders()
+                headers: headers
             });
             
             if (!response.ok) {
@@ -1500,9 +1524,12 @@ async function deleteProvider(providerId, providerName) {
 async function deleteModel(modelId, modelName) {
     showHighRiskConfirm(`删除模型 ${modelName}`, async () => {
         try {
+            const headers = getAuthHeaders();
+            headers['X-Confirm-Action'] = 'true';
+            
             const response = await fetch(getAdminApiUrl(`/models/${modelId}`), {
                 method: 'DELETE',
-                headers: getAuthHeaders()
+                headers: headers
             });
             
             if (!response.ok) {

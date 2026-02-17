@@ -232,6 +232,7 @@ def get_user_detail(
 @router.put("/users/{user_id}/role")
 @require_confirm("修改用户角色")
 def update_user_role(
+    request: Request,
     user_id: int,
     role_data: dict,
     db: Session = Depends(get_db),
@@ -258,6 +259,7 @@ def update_user_role(
 @router.put("/users/{user_id}/status")
 @require_confirm("更改用户状态")
 def update_user_status(
+    request: Request,
     user_id: int,
     status_data: dict,
     db: Session = Depends(get_db),
@@ -283,6 +285,7 @@ def update_user_status(
 @router.delete("/users/{user_id}")
 @require_confirm("删除用户")
 def delete_user_admin(
+    request: Request,
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
@@ -433,6 +436,7 @@ def update_provider(
 @router.delete("/providers/{provider_id}")
 @require_confirm("删除服务商")
 def delete_provider_admin(
+    request: Request,
     provider_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
@@ -547,6 +551,7 @@ def update_model(
 @router.delete("/models/{model_id}")
 @require_confirm("删除模型")
 def delete_model(
+    request: Request,
     model_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
@@ -863,6 +868,7 @@ def get_log_resource_resource_types(
 @router.put("/users/{user_id}/membership")
 @require_confirm("升级用户会员等级")
 def upgrade_membership(
+    request: Request,
     user_id: int,
     membership_data: dict,
     db: Session = Depends(get_db),

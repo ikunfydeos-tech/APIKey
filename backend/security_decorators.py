@@ -1,8 +1,7 @@
 from functools import wraps
 from fastapi import HTTPException, status, Request
-from sqlalchemy.orm import Session
 from auth import get_current_user
-from models import User
+import inspect
 
 # 高危操作列表
 HIGH_RISK_OPERATIONS = [
@@ -19,16 +18,19 @@ def require_confirm(action: str):
     """
     高危操作二次确认装饰器
     检查用户是否已经确认过该操作
+    支持同步和异步函数
     """
     def decorator(func):
+        is_async = inspect.iscoroutinefunction(func)
+        
         @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # 从请求中获取用户
-            request = None
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
+        async def async_wrapper(*args, **kwargs):
+            request = kwargs.get('request')
+            if not request:
+                for arg in args:
+                    if isinstance(arg, Request):
+                        request = arg
+                        break
             
             if not request:
                 raise HTTPException(
@@ -36,17 +38,8 @@ def require_confirm(action: str):
                     detail="无法获取请求信息"
                 )
             
-            # 获取当前用户
-            current_user = await get_current_user(request)
-            if not current_user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="未授权"
-                )
-            
             # 检查是否为高危操作
             if action in HIGH_RISK_OPERATIONS:
-                # 检查请求头中的确认标志
                 confirm_header = request.headers.get('X-Confirm-Action')
                 if not confirm_header or confirm_header.lower() != 'true':
                     raise HTTPException(
@@ -55,7 +48,34 @@ def require_confirm(action: str):
                     )
             
             return await func(*args, **kwargs)
-        return wrapper
+        
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            request = kwargs.get('request')
+            if not request:
+                for arg in args:
+                    if isinstance(arg, Request):
+                        request = arg
+                        break
+            
+            if not request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="无法获取请求信息"
+                )
+            
+            # 检查是否为高危操作
+            if action in HIGH_RISK_OPERATIONS:
+                confirm_header = request.headers.get('X-Confirm-Action')
+                if not confirm_header or confirm_header.lower() != 'true':
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"此操作为高危操作，请先确认: {action}"
+                    )
+            
+            return func(*args, **kwargs)
+        
+        return async_wrapper if is_async else sync_wrapper
     return decorator
 
 def get_high_risk_operations():
