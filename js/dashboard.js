@@ -107,6 +107,12 @@ function displayUsername() {
         const user = JSON.parse(userStr);
         document.getElementById('usernameDisplay').textContent = user.username || '用户';
         
+        // 动态设置角色标签
+        const roleDisplay = document.getElementById('userRoleDisplay');
+        if (roleDisplay) {
+            roleDisplay.textContent = user.role === 'admin' ? '管理员' : '用户';
+        }
+        
         // 如果是管理员，显示管理后台入口
         if (user.role === 'admin') {
             const adminNav = document.getElementById('navAdmin');
@@ -114,6 +120,35 @@ function displayUsername() {
                 adminNav.style.display = 'flex';
             }
         }
+    }
+}
+
+// 跳转到管理后台（动态获取入口路径）
+async function goToAdmin(event) {
+    event.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    try {
+        // 获取动态管理员入口路径
+        const response = await fetch(`${API_BASE_URL}/api/admin-path`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // 跳转到动态管理员页面
+            window.location.href = `admin.html?path=${data.admin_path}`;
+        } else {
+            alert('无法访问管理后台');
+        }
+    } catch (error) {
+        console.error('获取管理员入口失败:', error);
+        alert('获取管理员入口失败');
     }
 }
 

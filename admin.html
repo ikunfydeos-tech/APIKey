@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台 - API密钥管理系统</title>
-    <link rel="stylesheet" href="css/style.css?v=4">
-    <link rel="stylesheet" href="css/dashboard.css?v=4">
-    <link rel="stylesheet" href="css/admin.css?v=4">
+    <link rel="stylesheet" href="css/style.css?v=20260217">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260217">
+    <link rel="stylesheet" href="css/admin.css?v=20260217">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -41,6 +41,10 @@
                 <a href="#" class="nav-item" id="navConfig" onclick="switchToConfig()">
                     <i data-lucide="settings"></i>
                     <span>配置同步</span>
+                </a>
+                <a href="#" class="nav-item" id="navLogs" onclick="switchToLogs()">
+                    <i data-lucide="book-open"></i>
+                    <span>日志审计</span>
                 </a>
             </nav>
 
@@ -221,6 +225,10 @@
                             <h1>服务商管理</h1>
                             <p>管理 API 服务商配置</p>
                         </div>
+                        <button class="primary-btn" onclick="openAddProviderModal()">
+                            <i data-lucide="plus"></i>
+                            <span>添加服务商</span>
+                        </button>
                     </div>
 
                     <div class="table-section">
@@ -340,6 +348,127 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 日志审计页面 -->
+            <div id="logsPage" class="page hidden">
+                <div class="page-title">
+                    <div class="title-info">
+                        <h1>日志审计</h1>
+                        <p>查看系统操作日志，进行安全审计</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn-secondary" onclick="exportLogs()">
+                            <i data-lucide="download"></i>
+                            <span>导出日志</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 筛选面板 -->
+                <div class="filter-panel">
+                    <div class="filter-header">
+                        <h3><i data-lucide="filter"></i> 筛选条件</h3>
+                    </div>
+                    <div class="filter-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>用户</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="user"></i>
+                                    <select id="logUserId" onchange="loadLogs()">
+                                        <option value="">全部用户</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>操作类型</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="activity"></i>
+                                    <select id="logAction" onchange="loadLogs()">
+                                        <option value="">全部操作</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>资源类型</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="box"></i>
+                                    <select id="logResourceType" onchange="loadLogs()">
+                                        <option value="">全部资源</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>状态</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="circle-check"></i>
+                                    <select id="logStatus" onchange="loadLogs()">
+                                        <option value="">全部状态</option>
+                                        <option value="success">成功</option>
+                                        <option value="failed">失败</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group reset-btn-group">
+                                <button class="btn-reset" onclick="resetLogFilters()">
+                                    <i data-lucide="rotate-ccw"></i>
+                                    <span>重置</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group date-range-group">
+                                <label>日期范围</label>
+                                <div class="date-range-inputs">
+                                    <div class="input-wrapper date-input-wrapper" onclick="document.getElementById('logStartDate').showPicker()">
+                                        <i data-lucide="calendar"></i>
+                                        <input type="date" id="logStartDate" class="date-input" onchange="loadLogs()">
+                                    </div>
+                                    <span class="date-range-to">至</span>
+                                    <div class="input-wrapper date-input-wrapper" onclick="document.getElementById('logEndDate').showPicker()">
+                                        <i data-lucide="calendar"></i>
+                                        <input type="date" id="logEndDate" class="date-input" onchange="loadLogs()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 日志表格 -->
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>用户</th>
+                                <th>操作</th>
+                                <th>资源类型</th>
+                                <th>资源名称</th>
+                                <th>IP地址</th>
+                                <th>状态</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <!-- 日志数据将在这里渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination" id="logsPagination">
+                    <button class="btn-secondary" id="logsPrevBtn" onclick="previousLogsPage()" disabled>
+                        <i data-lucide="chevron-left"></i>
+                        <span>上一页</span>
+                    </button>
+                    <span id="logsPageInfo">第 1 页，共 1 页</span>
+                    <button class="btn-secondary" id="logsNextBtn" onclick="nextLogsPage()">
+                        <i data-lucide="chevron-right"></i>
+                        <span>下一页</span>
+                    </button>
                 </div>
             </div>
         </main>
@@ -477,6 +606,84 @@
         </div>
     </div>
 
+    <!-- 添加服务商弹窗 -->
+    <div class="modal-overlay" id="addProviderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>添加服务商</h2>
+                <button class="modal-close" onclick="closeAddProviderModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="providerForm" class="modal-form" onsubmit="event.preventDefault(); saveProvider();">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="providerName">服务商标识 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="hash"></i>
+                            <input type="text" id="providerName" placeholder="如: openai_new" required>
+                        </div>
+                        <small class="form-hint">唯一标识，仅支持英文、数字、下划线</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="providerDisplayName">显示名称 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="type"></i>
+                            <input type="text" id="providerDisplayName" placeholder="如: OpenAI 新版" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="providerBaseUrl">API 地址 <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="link"></i>
+                            <input type="url" id="providerBaseUrl" placeholder="如: https://api.example.com/v1" required>
+                        </div>
+                        <small class="form-hint">API 基础地址，通常包含 /v1</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="providerDescription">描述</label>
+                        <div class="input-wrapper textarea-wrapper">
+                            <textarea id="providerDescription" placeholder="服务商描述信息..." rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="providerIcon">图标</label>
+                        <div class="select-wrapper">
+                            <i data-lucide="image"></i>
+                            <select id="providerIcon">
+                                <option value="link">链接</option>
+                                <option value="brain">大脑</option>
+                                <option value="bot">机器人</option>
+                                <option value="sparkles">闪光</option>
+                                <option value="cloud">云</option>
+                                <option value="cpu">CPU</option>
+                                <option value="globe">地球</option>
+                                <option value="hexagon">六边形</option>
+                                <option value="zap">闪电</option>
+                                <option value="moon">月亮</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddProviderModal()">取消</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="plus"></i>
+                        <span>添加</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 确认操作弹窗 -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal modal-sm">
@@ -505,7 +712,22 @@
     <!-- Toast 通知 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/admin.js"></script>
+    <script>
+        // 获取后台路径
+        fetch('http://localhost:8000/api/admin/path')
+            .then(response => response.json())
+            .then(data => {
+                // 更新返回按钮的链接
+                const backBtn = document.querySelector('.back-btn');
+                if (backBtn) {
+                    backBtn.href = data.admin_path;
+                }
+            })
+            .catch(error => {
+                console.error('获取后台路径失败:', error);
+            });
+    </script>
+    <script src="js/admin.js?v=20260217"></script>
     <script>
         lucide.createIcons();
     </script>

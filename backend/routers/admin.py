@@ -1,18 +1,23 @@
 import json
 import httpx
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import Optional, List
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from database import get_db
 from models import ApiProvider, ApiModel, UserApiKey
 from schemas import MessageResponse
 from auth import get_current_admin_user
 from models import User
 from config import settings
+from security_decorators import require_confirm, get_high_risk_operations
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+# 注意：路由前缀由 main.py 动态设置
+router = APIRouter(tags=["admin"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ============ 数据统计 ============
@@ -167,6 +172,9 @@ def get_users(
             "username": user.username,
             "email": user.email,
             "role": user.role,
+            "membership_tier": user.membership_tier,
+            "membership_expire_at": user.membership_expire_at,
+            "membership_started_at": user.membership_started_at,
             "is_active": user.is_active,
             "created_at": user.created_at,
             "last_login": user.last_login,
@@ -210,6 +218,9 @@ def get_user_detail(
         "username": user.username,
         "email": user.email,
         "role": user.role,
+        "membership_tier": user.membership_tier,
+        "membership_expire_at": user.membership_expire_at,
+        "membership_started_at": user.membership_started_at,
         "is_active": user.is_active,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
@@ -219,6 +230,7 @@ def get_user_detail(
     }
 
 @router.put("/users/{user_id}/role")
+@require_confirm("修改用户角色")
 def update_user_role(
     user_id: int,
     role_data: dict,
@@ -244,6 +256,7 @@ def update_user_role(
     return {"message": f"用户角色已更新为 {new_role}", "success": True}
 
 @router.put("/users/{user_id}/status")
+@require_confirm("更改用户状态")
 def update_user_status(
     user_id: int,
     status_data: dict,
@@ -265,6 +278,35 @@ def update_user_status(
     
     status_text = "启用" if is_active else "禁用"
     return {"message": f"用户已{status_text}", "success": True}
+
+
+@router.delete("/users/{user_id}")
+@require_confirm("删除用户")
+def delete_user_admin(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """删除用户"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    # 不能删除自己
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="不能删除自己")
+    
+    # 不能删除管理员（除非只剩一个管理员）
+    if user.role == "admin":
+        admin_count = db.query(User).filter(User.role == "admin").count()
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="至少需要保留一个管理员")
+    
+    username = user.username
+    db.delete(user)
+    db.commit()
+    
+    return {"message": f"用户 {username} 已删除", "success": True}
 
 
 # ============ 服务商管理 ============
@@ -388,6 +430,25 @@ def update_provider(
     return {"message": "服务商信息已更新", "success": True}
 
 
+@router.delete("/providers/{provider_id}")
+@require_confirm("删除服务商")
+def delete_provider_admin(
+    provider_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """删除服务商"""
+    provider = db.query(ApiProvider).filter(ApiProvider.id == provider_id).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="服务商不存在")
+    
+    provider_name = provider.display_name
+    db.delete(provider)
+    db.commit()
+    
+    return {"message": f"服务商 {provider_name} 已删除", "success": True}
+
+
 # ============ 模型管理 ============
 
 @router.get("/models")
@@ -484,6 +545,7 @@ def update_model(
     return {"message": "模型信息已更新", "success": True}
 
 @router.delete("/models/{model_id}")
+@require_confirm("删除模型")
 def delete_model(
     model_id: int,
     db: Session = Depends(get_db),
@@ -530,7 +592,9 @@ def get_config_status(
     }
 
 @router.post("/config/sync", response_model=MessageResponse)
+@limiter.limit("5/minute")  # 每分钟最多同步 5 次
 async def sync_model_config(
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
@@ -616,7 +680,9 @@ async def sync_model_config(
     )
 
 @router.post("/config/upload", response_model=MessageResponse)
+@limiter.limit("5/minute")  # 每分钟最多上传 5 次
 async def upload_model_config(
+    request: Request,
     config_json: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
@@ -668,3 +734,190 @@ async def upload_model_config(
         message=f"Config applied: {added_count} models added, {updated_count} models updated",
         success=True
     )
+
+
+# ============ 日志审计 ============
+
+@router.get("/logs")
+def get_logs(
+    page: int = 1,
+    page_size: int = 50,
+    user_id: Optional[int] = None,
+    username: Optional[str] = None,
+    action: Optional[str] = None,
+    resource_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取操作日志列表"""
+    from datetime import datetime
+    
+    query = db.query(LogEntry)
+    
+    if user_id:
+        query = query.filter(LogEntry.user_id == user_id)
+    
+    if username:
+        query = query.filter(LogEntry.username.ilike(f"%{username}%"))
+    
+    if action:
+        query = query.filter(LogEntry.action.ilike(f"%{action}%"))
+    
+    if resource_type:
+        query = query.filter(LogEntry.resource_type == resource_type)
+    
+    if status:
+        query = query.filter(LogEntry.status == status)
+    
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            query = query.filter(LogEntry.created_at >= start_dt)
+        except:
+            pass
+    
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date)
+            query = query.filter(LogEntry.created_at <= end_dt)
+        except:
+            pass
+    
+    total = query.count()
+    logs = query.order_by(LogEntry.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "logs": [
+            {
+                "id": log.id,
+                "user_id": log.user_id,
+                "username": log.username,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": log.resource_id,
+                "resource_name": log.resource_name,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent,
+                "status": log.status,
+                "error_message": log.error_message,
+                "details": json.loads(log.details) if log.details else None,
+                "created_at": log.created_at
+            }
+            for log in logs
+        ]
+    }
+
+@router.get("/logs/users")
+def get_log_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取有操作日志的用户列表"""
+    users = db.query(
+        LogEntry.username,
+        LogEntry.user_id
+    ).filter(
+        LogEntry.username.isnot(None)
+    ).distinct().all()
+    
+    return [
+        {"id": u.user_id, "username": u.username}
+        for u in users
+        if u.username and u.username.strip()
+    ]
+
+@router.get("/logs/actions")
+def get_log_actions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取所有操作类型列表"""
+    actions = db.query(
+        LogEntry.action
+    ).filter(
+        LogEntry.action.isnot(None)
+    ).distinct().all()
+    
+    return [a.action for a in actions if a.action and a.action.strip()]
+
+@router.get("/logs/resource-types")
+def get_log_resource_resource_types(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """获取所有资源类型列表"""
+    resource_types = db.query(
+        LogEntry.resource_type
+    ).filter(
+        LogEntry.resource_type.isnot(None)
+    ).distinct().all()
+    
+    return [rt.resource_type for rt in resource_types if rt.resource_type and rt.resource_type.strip()]
+
+@router.put("/users/{user_id}/membership")
+@require_confirm("升级用户会员等级")
+def upgrade_membership(
+    user_id: int,
+    membership_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """管理员升级用户会员等级"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    new_tier = membership_data.get("membership_tier")
+    valid_tiers = ["free", "basic", "pro"]
+    if new_tier not in valid_tiers:
+        raise HTTPException(status_code=400, detail=f"无效的会员等级，必须是: {', '.join(valid_tiers)}")
+    
+    # 记录升级前的会员等级
+    old_tier = user.membership_tier
+    
+    # 更新会员等级
+    user.membership_tier = new_tier
+    
+    # 如果是升级到付费版本，设置会员开始和结束时间
+    if new_tier in ["basic", "pro"]:
+        from datetime import datetime, timedelta
+        user.membership_started_at = datetime.utcnow()
+        
+        # 设置到期时间：basic 一个月，pro 一年
+        if new_tier == "basic":
+            user.membership_expire_at = datetime.utcnow() + timedelta(days=30)
+        else:  # pro
+            user.membership_expire_at = datetime.utcnow() + timedelta(days=365)
+    else:  # free
+        user.membership_started_at = None
+        user.membership_expire_at = None
+    
+    db.commit()
+    
+    # 记录操作日志
+    from models import LogEntry
+    log_entry = LogEntry(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=f"升级会员",
+        resource_type="USER",
+        resource_id=user_id,
+        resource_name=user.username,
+        details=json.dumps({
+            "old_tier": old_tier,
+            "new_tier": new_tier
+        }, ensure_ascii=False)
+    )
+    db.add(log_entry)
+    db.commit()
+    
+    return {
+        "message": f"会员升级成功：{user.username} 从 {old_tier} 升级到 {new_tier}",
+        "success": True
+    }

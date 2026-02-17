@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - API密钥管理系统</title>
+    <link rel="stylesheet" href="css/style.css?v=20260217">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260217">
+    <link rel="stylesheet" href="css/profile.css?v=20260217">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.html" class="logo-icon-only" title="返回控制台">
+                    <i data-lucide="shield-check"></i>
+                </a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="key"></i>
+                    <span>密钥管理</span>
+                </a>
+                <a href="dashboard.html#" class="nav-item" onclick="openProviderConfigModal()">
+                    <i data-lucide="server"></i>
+                    <span>服务商配置</span>
+                </a>
+                <a href="dashboard.html#" class="nav-item" onclick="switchToUsage()">
+                    <i data-lucide="bar-chart-2"></i>
+                    <span>使用统计</span>
+                </a>
+                <a href="#" class="nav-item admin-nav" id="navAdmin" style="display: none;" onclick="goToAdmin(event)">
+                    <i data-lucide="shield"></i>
+                    <span>管理后台</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card active">
+                    <div class="user-avatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="usernameDisplay">用户名</span>
+                        <span class="user-role" id="userRole">用户</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <i data-lucide="log-out"></i>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-area">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>个人中心</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <a href="dashboard.html" class="topbar-btn" title="返回控制台">
+                        <i data-lucide="arrow-left"></i>
+                    </a>
+                </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <div class="content-area profile-content">
+                <!-- 安全评分卡片 -->
+                <div class="security-score-card">
+                    <div class="score-ring-container">
+                        <svg class="score-ring" viewBox="0 0 120 120">
+                            <circle class="score-ring-bg" cx="60" cy="60" r="54" />
+                            <circle class="score-ring-progress" cx="60" cy="60" r="54" id="scoreRing" />
+                        </svg>
+                        <div class="score-value">
+                            <span class="score-number" id="securityScore">--</span>
+                            <span class="score-label">安全评分</span>
+                        </div>
+                    </div>
+                    <div class="score-details">
+                        <h3>账户安全状况</h3>
+                        <p id="scoreDescription">正在评估...</p>
+                        <div class="score-checklist" id="securityChecklist">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设置卡片网格 -->
+                <div class="settings-grid">
+                    <!-- 账户信息卡片 -->
+                    <div class="setting-card">
+                        <div class="card-header">
+                            <div class="card-icon blue">
+                                <i data-lucide="user-circle"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>账户信息</h3>
+                                <p>基本信息与账户状态</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-item">
+                                <span class="info-label">用户名</span>
+                                <span class="info-value" id="infoUsername">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">邮箱</span>
+                                <span class="info-value" id="infoEmail">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">角色</span>
+                                <span class="info-value" id="infoRole">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">注册时间</span>
+                                <span class="info-value" id="infoCreatedAt">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">最后登录</span>
+                                <span class="info-value" id="infoLastLogin">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 修改密码卡片 -->
+                    <div class="setting-card">
+                        <div class="card-header">
+                            <div class="card-icon orange">
+                                <i data-lucide="lock"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>修改密码</h3>
+                                <p>定期更换密码保护账户安全</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form id="passwordForm" class="setting-form">
+                                <div class="form-group">
+                                    <label for="currentPassword">当前密码</label>
+                                    <div class="input-wrapper">
+                                        <i data-lucide="key"></i>
+                                        <input type="password" id="currentPassword" placeholder="输入当前密码" required>
+                                        <button type="button" class="toggle-password" onclick="togglePasswordField('currentPassword')">
+                                            <i data-lucide="eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newPassword">新密码</label>
+                                    <div class="input-wrapper">
+                                        <i data-lucide="lock"></i>
+                                        <input type="password" id="newPassword" placeholder="输入新密码" required>
+                                        <button type="button" class="toggle-password" onclick="togglePasswordField('newPassword')">
+                                            <i data-lucide="eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="password-strength" id="passwordStrength">
+                                        <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                                        <span class="strength-text" id="strengthText">密码强度</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">确认新密码</label>
+                                    <div class="input-wrapper">
+                                        <i data-lucide="lock"></i>
+                                        <input type="password" id="confirmPassword" placeholder="再次输入新密码" required>
+                                        <button type="button" class="toggle-password" onclick="togglePasswordField('confirmPassword')">
+                                            <i data-lucide="eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary">
+                                        <i data-lucide="save"></i>
+                                        <span>更新密码</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 双因素认证卡片 -->
+                    <div class="setting-card">
+                        <div class="card-header">
+                            <div class="card-icon green">
+                                <i data-lucide="shield-check"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>双因素认证</h3>
+                                <p>增强账户登录安全性</p>
+                            </div>
+                            <div class="card-status">
+                                <span class="status-badge" id="totpStatusBadge">未启用</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="totpDisabledSection">
+                                <div class="totp-info">
+                                    <i data-lucide="info"></i>
+                                    <p>启用双因素认证后，每次登录都需要输入认证器应用生成的验证码，即使密码泄露也能保护账户安全。</p>
+                                </div>
+                                <button class="btn-primary" onclick="setupTOTP()">
+                                    <i data-lucide="shield-check"></i>
+                                    <span>启用 2FA</span>
+                                </button>
+                            </div>
+                            <div id="totpSetupSection" class="hidden">
+                                <div class="totp-setup">
+                                    <div class="qr-section">
+                                        <span class="section-label">扫描二维码</span>
+                                        <div class="qr-code-wrapper">
+                                            <img id="totpQrCode" src="" alt="二维码">
+                                        </div>
+                                        <span class="hint">使用认证器应用（如 Google Authenticator）扫描</span>
+                                    </div>
+                                    <div class="secret-section">
+                                        <span class="section-label">或手动输入密钥</span>
+                                        <div class="input-wrapper">
+                                            <input type="text" id="totpSecret" readonly>
+                                            <button type="button" class="btn-copy" onclick="copySecret()">
+                                                <i data-lucide="copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="verify-section">
+                                    <label for="totpToken">输入验证码</label>
+                                    <div class="token-input-wrapper">
+                                        <input type="text" id="totpToken" placeholder="6位数字验证码" maxlength="6" autocomplete="off">
+                                    </div>
+                                    <div class="setup-actions">
+                                        <button class="btn-primary" onclick="enableTOTP()">
+                                            <i data-lucide="check"></i>
+                                            <span>确认启用</span>
+                                        </button>
+                                        <button class="btn-secondary" onclick="cancelTOTPSetup()">
+                                            <i data-lucide="x"></i>
+                                            <span>取消</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="totpEnabledSection" class="hidden">
+                                <div class="totp-active">
+                                    <div class="active-icon">
+                                        <i data-lucide="shield-check"></i>
+                                    </div>
+                                    <p>双因素认证已启用</p>
+                                    <span>每次登录都需要验证码</span>
+                                </div>
+                                <div class="disable-section">
+                                    <label for="totpDisableToken">输入验证码以禁用</label>
+                                    <div class="token-input-wrapper">
+                                        <input type="text" id="totpDisableToken" placeholder="6位数字验证码" maxlength="6">
+                                    </div>
+                                    <button class="btn-danger" onclick="disableTOTP()">
+                                        <i data-lucide="shield-off"></i>
+                                        <span>禁用 2FA</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 登录历史卡片 -->
+                    <div class="setting-card wide">
+                        <div class="card-header">
+                            <div class="card-icon purple">
+                                <i data-lucide="history"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>登录历史</h3>
+                                <p>查看最近的登录记录</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="login-history-list" id="loginHistoryList">
+                                <!-- 动态生成 -->
+                            </div>
+                            <div class="history-footer">
+                                <span class="history-hint">仅显示最近 10 条登录记录</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 会话管理卡片 -->
+                    <div class="setting-card">
+                        <div class="card-header">
+                            <div class="card-icon cyan">
+                                <i data-lucide="monitor-smartphone"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>会话管理</h3>
+                                <p>管理所有已登录设备</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="session-list" id="sessionList">
+                                <!-- 动态生成 -->
+                            </div>
+                            <div class="session-actions">
+                                <button class="btn-danger btn-outline" onclick="revokeAllSessions()">
+                                    <i data-lucide="log-out"></i>
+                                    <span>登出所有其他设备</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 危险操作卡片 -->
+                    <div class="setting-card danger-card">
+                        <div class="card-header">
+                            <div class="card-icon red">
+                                <i data-lucide="alert-triangle"></i>
+                            </div>
+                            <div class="card-title">
+                                <h3>危险操作</h3>
+                                <p>以下操作不可恢复，请谨慎操作</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="danger-item">
+                                <div class="danger-info">
+                                    <h4>导出数据</h4>
+                                    <p>导出您的所有 API 密钥数据</p>
+                                </div>
+                                <button class="btn-secondary" onclick="exportData()">
+                                    <i data-lucide="download"></i>
+                                    <span>导出</span>
+                                </button>
+                            </div>
+                            <div class="danger-item">
+                                <div class="danger-info">
+                                    <h4>删除账户</h4>
+                                    <p>永久删除您的账户和所有数据</p>
+                                </div>
+                                <button class="btn-danger" onclick="showDeleteAccountModal()">
+                                    <i data-lucide="trash-2"></i>
+                                    <span>删除账户</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 删除账户确认弹窗 -->
+    <div class="modal-overlay" id="deleteAccountModal">
+        <div class="modal modal-sm">
+            <div class="modal-header danger-header">
+                <h2><i data-lucide="alert-triangle"></i> 删除账户</h2>
+                <button class="modal-close" onclick="closeDeleteAccountModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-content">
+                    <p>此操作将永久删除您的账户，包括：</p>
+                    <ul>
+                        <li>所有 API 密钥</li>
+                        <li>登录历史记录</li>
+                        <li>账户设置</li>
+                    </ul>
+                    <p class="warning-text">此操作不可恢复！</p>
+                </div>
+                <div class="form-group">
+                    <label for="deleteConfirmPassword">请输入密码确认</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="deleteConfirmPassword" placeholder="输入当前密码">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeDeleteAccountModal()">取消</button>
+                <button type="button" class="btn-danger" onclick="deleteAccount()">
+                    <i data-lucide="trash-2"></i>
+                    <span>确认删除</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/profile.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

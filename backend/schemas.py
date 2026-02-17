@@ -25,7 +25,11 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     role: str = "user"
+    membership_tier: str = "free"
+    membership_expire_at: Optional[datetime] = None
+    membership_started_at: Optional[datetime] = None
     created_at: datetime
+    last_login: Optional[datetime] = None
     
     class Config:
         from_attributes = True

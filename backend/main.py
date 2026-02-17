@@ -1,14 +1,22 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from config import settings
-from routers import auth, keys, admin
+from routers import auth, keys, totp
+from routers import admin as admin_router
+from log_middleware import log_middleware
+from security_middleware import admin_api_middleware, block_admin_page_access
+from admin_path import get_admin_path, get_admin_api_prefix, init_admin_path
 from pathlib import Path
+
+# 初始化管理员路径（服务启动时）
+admin_path = init_admin_path()
+print(f"[Security] Admin path initialized: /sec/{admin_path}.html")
+print(f"[Security] Admin API prefix: {get_admin_api_prefix()}")
 
 # Rate Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -34,10 +42,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Log middleware - 使用装饰器形式注册
+@app.middleware("http")
+async def log_middleware_wrapper(request: Request, call_next):
+    return await log_middleware(request, call_next)
+
+# Admin security middlewares - 使用装饰器形式注册
+@app.middleware("http")
+async def admin_api_middleware_wrapper(request: Request, call_next):
+    return await admin_api_middleware(request, call_next)
+
+@app.middleware("http")
+async def block_admin_page_access_wrapper(request: Request, call_next):
+    return await block_admin_page_access(request, call_next)
+
+# Include public routers
 app.include_router(auth.router)
 app.include_router(keys.router)
-app.include_router(admin.router)
+app.include_router(totp.router)
+
+# 动态注册管理员路由（使用动态前缀）
+admin_api_prefix = get_admin_api_prefix()
+app.include_router(admin_router.router, prefix=admin_api_prefix)
+
+# 管理员路径获取端点（需要管理员身份验证）
+from auth import get_current_admin_user
+from models import User
+
+@app.get("/api/admin-path")
+async def get_admin_entry(current_user: User = Depends(get_current_admin_user)):
+    """
+    获取管理员入口路径
+    只有管理员才能调用此接口
+    """
+    return {
+        "admin_path": get_admin_path(),
+        "admin_url": f"/sec/{get_admin_path()}.html",
+        "success": True
+    }
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -52,6 +94,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     # 引用策略
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # 禁止搜索引擎索引
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
     
     return response
 

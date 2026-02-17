@@ -12,6 +12,12 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     salt = Column(String(64))
     role = Column(String(20), default="user")  # "admin" or "user"
+    
+    # 会员等级：free(免费版), basic(基础版), pro(专业版)
+    membership_tier = Column(String(20), default="free")
+    membership_expire_at = Column(TIMESTAMP, nullable=True)  # 会员到期时间，null表示永久或免费版
+    membership_started_at = Column(TIMESTAMP, nullable=True)  # 会员开始时间
+    
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(TIMESTAMP, nullable=True)
@@ -20,6 +26,7 @@ class User(Base):
     locked_until = Column(TIMESTAMP, nullable=True)
     
     api_keys = relationship("UserApiKey", back_populates="user", cascade="all, delete-orphan")
+    totp_config = relationship("TOTPConfig", back_populates="user", cascade="all, delete-orphan", uselist=False)
 
 class ApiProvider(Base):
     __tablename__ = "api_providers"
@@ -73,3 +80,45 @@ class UserApiKey(Base):
     
     user = relationship("User", back_populates="api_keys")
     provider = relationship("ApiProvider", back_populates="api_keys")
+
+class LogEntry(Base):
+    __tablename__ = "log_entries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    username = Column(String(50), nullable=True, index=True)
+    action = Column(String(100), nullable=False, index=True)  # 登录, 创建密钥, 删除密钥, 等
+    resource_type = Column(String(50), nullable=True, index=True)  # API_KEY, USER, SYSTEM
+    resource_id = Column(Integer, nullable=True)
+    resource_name = Column(String(200), nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    status = Column(String(20), default="success")  # success, failed
+    error_message = Column(Text, nullable=True)
+    details = Column(Text, nullable=True)  # JSON 格式的额外信息
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
+
+class TOTPConfig(Base):
+    __tablename__ = "totp_configs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    secret = Column(String(255), nullable=False)
+    is_enabled = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="totp_config")
+
+class TOTPLog(Base):
+    __tablename__ = "totp_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    username = Column(String(50), nullable=True, index=True)
+    action = Column(String(50), nullable=False, index=True)  # enable, disable, verify, failed
+    ip_address = Column(String(45), nullable=True)
+    status = Column(String(20), default="success")
+    error_message = Column(Text, nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
