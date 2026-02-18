@@ -19,6 +19,10 @@
   <strong>⚡ 3 分钟快速部署</strong> · 无需安装数据库 · 开箱即用
 </p>
 
+<p align="center">
+  <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+</p>
+
 ---
 
 ## ✨ 特点
@@ -66,11 +70,44 @@ chmod +x install.sh && ./install.sh
 # 4. 访问 http://localhost:8000
 ```
 
-### Docker
+---
+
+## 🐳 Docker 部署
+
+### 方式一：SQLite 模式（推荐个人使用）
 
 ```bash
-docker-compose up -d
+# 一键启动（最简单）
+docker-compose -f docker-compose.sqlite.yml up -d
+
+# 访问 http://localhost:8000
+# 数据存储在 ./data/api_manager.db
 ```
+
+### 方式二：PostgreSQL 模式（推荐生产环境）
+
+```bash
+# 1. 创建配置文件
+cp .env.example .env
+
+# 2. 编辑 .env 设置必填项：
+#    - SECRET_KEY（至少 32 字符）
+#    - ENCRYPTION_KEY（32 字节）
+#    - ENCRYPTION_SALT（16 字节）
+#    - DB_PASSWORD（数据库密码）
+
+# 3. 启动服务
+docker-compose up -d
+
+# 访问 http://localhost:8000
+```
+
+### 数据库选择对比
+
+| 数据库 | 适用场景 | 启动命令 |
+|--------|----------|----------|
+| **SQLite** | 个人使用、测试、开发 | `docker-compose -f docker-compose.sqlite.yml up -d` |
+| **PostgreSQL** | 生产环境、多用户、高并发 | `docker-compose up -d` |
 
 ---
 
@@ -156,7 +193,8 @@ APIKey/
 ├── install.sh            # Linux/Mac 安装脚本
 ├── start.ps1             # Windows 启动脚本
 ├── start.sh              # Linux/Mac 启动脚本
-├── docker-compose.yml    # Docker 配置
+├── docker-compose.yml    # Docker 配置（PostgreSQL）
+├── docker-compose.sqlite.yml  # Docker 配置（SQLite）
 └── LICENSE               # MIT 许可证
 ```
 

@@ -1,34 +1,42 @@
-# API Key Manager - 后端服务
+# API Key Manager - Backend Service
 FROM python:3.13-slim
 
-# 设置工作目录
+LABEL maintainer="ikunfydeos@163.com"
+LABEL description="API Key Manager - Secure API Key Management Platform"
+
+# Set working directory
 WORKDIR /app
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
+# Copy requirements and install Python dependencies
 COPY backend/requirements.txt .
-
-# 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制后端代码
+# Copy backend code
 COPY backend/ ./backend/
 COPY sql/ ./sql/
 
-# 设置环境变量
-ENV PYTHONUNBUFFERED=1
-ENV DATABASE_URL=postgresql://postgres:postgres@db:5432/llm_api_manager
-ENV SECRET_KEY=your-secret-key-change-in-production
-ENV ENCRYPTION_KEY=your-encryption-key-change-in-production
+# Create data directory for SQLite
+RUN mkdir -p /app/backend/data
 
-# 暴露端口
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Expose port
 EXPOSE 8000
 
-# 启动命令
+# Set working directory to backend
 WORKDIR /app/backend
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')" || exit 1
+
+# Start server
 CMD ["python", "run_server.py"]

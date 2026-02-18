@@ -1,0 +1,25 @@
+version: '3.8'
+
+# ============================================
+# API Key Manager - SQLite 模式（推荐新手使用）
+# 适合：个人使用、测试、快速部署
+# 数据存储：./data/api_manager.db
+# 启动命令：docker-compose -f docker-compose.sqlite.yml up -d
+# ============================================
+
+services:
+  backend:
+    build: .
+    container_name: api-key-manager
+    environment:
+      DATABASE_URL: sqlite:///./data/api_manager.db
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-at-least-32-characters}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-this-encryption-key-32-bytes}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-change-this-salt-16}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ENV: production
+    volumes:
+      - ./data:/app/backend/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

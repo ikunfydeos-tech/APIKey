@@ -9,9 +9,9 @@ pydantic[email]==2.9.2
 # SQLite 支持（默认，无需安装数据库）
 aiosqlite==0.20.0
 
-# PostgreSQL 支持（生产环境推荐，可选）
-# 如果使用 PostgreSQL，请取消下面这行注释
-# psycopg[binary]==3.2.3
+# PostgreSQL 支持（生产环境推荐）
+# 本地开发可注释此行，Docker 部署需要
+psycopg[binary]==3.2.3
 
 # 安全认证
 python-jose[cryptography]==3.3.0
