@@ -114,7 +114,7 @@ docker-compose up -d
 ## 📸 截图
 
 <p align="center">
-  <img src="屏幕截图 2026-02-18 171029.png" alt="Dashboard" width="600">
+  <img src="screenshot-dashboard.png" alt="Dashboard" width="600">
 </p>
 
 ---

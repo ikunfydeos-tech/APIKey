@@ -36,6 +36,14 @@
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshot-dashboard.png" alt="Dashboard" width="600">
+</p>
+
+---
+
 ## ⚡ Quick Start
 
 ### Windows
