@@ -194,26 +194,10 @@ def get_key_limits(
     """获取用户密钥数量限制信息"""
     can_add, current_count, limit = check_key_limit(current_user, db)
     
-    # 获取用户会员等级
-    tier = current_user.membership_tier or "free"
-    
-    # 检查会员是否过期
-    from datetime import datetime
-    is_expired = False
-    if current_user.membership_expire_at and current_user.membership_expire_at < datetime.utcnow():
-        is_expired = True
-        tier = "free"
-    
-    tier_names = {"free": "免费版", "basic": "基础版", "pro": "专业版"}
-    
     return {
-        "tier": tier,
-        "tier_name": tier_names.get(tier, "免费版"),
         "current_count": current_count,
         "limit": limit,  # -1 表示无限制
-        "can_add": can_add,
-        "is_expired": is_expired,
-        "expire_at": current_user.membership_expire_at.isoformat() if current_user.membership_expire_at else None
+        "can_add": can_add
     }
 
 @router.get("", response_model=List[UserApiKeyResponse])
@@ -248,37 +232,24 @@ def get_user_keys(
     
     return result
 
-# 会员密钥数量限制
-MEMBERSHIP_KEY_LIMITS = {
-    "free": 2,      # 免费用户最多 2 个密钥
-    "basic": 20,    # 基础版最多 20 个密钥
-    "pro": None,    # 专业版无限制
-}
+# 密钥数量无限制（开源版）
+# 如需限制，可在此配置
+KEY_LIMIT = None  # None 表示无限制，设置为数字则限制数量
+
 
 def check_key_limit(user: User, db: Session) -> tuple[bool, int, int]:
     """检查用户密钥数量是否达到上限
     
     返回: (是否可添加, 当前数量, 上限)
     """
-    # 获取用户当前密钥数量
     current_count = db.query(UserApiKey).filter(
         UserApiKey.user_id == user.id
     ).count()
     
-    # 获取用户会员等级对应的密钥上限
-    tier = user.membership_tier or "free"
+    if KEY_LIMIT is None:
+        return True, current_count, -1  # 无限制
     
-    # 检查会员是否过期
-    from datetime import datetime
-    if user.membership_expire_at and user.membership_expire_at < datetime.utcnow():
-        tier = "free"  # 过期降级为免费版
-    
-    limit = MEMBERSHIP_KEY_LIMITS.get(tier, 2)
-    
-    if limit is None:  # 无限制
-        return True, current_count, -1
-    
-    return current_count < limit, current_count, limit
+    return current_count < KEY_LIMIT, current_count, KEY_LIMIT
 
 @router.post("", response_model=UserApiKeyResponse)
 def create_api_key(
@@ -289,11 +260,9 @@ def create_api_key(
     # 检查密钥数量限制
     can_add, current_count, limit = check_key_limit(current_user, db)
     if not can_add:
-        tier = current_user.membership_tier or "free"
-        tier_names = {"free": "免费版", "basic": "基础版", "pro": "专业版"}
         raise HTTPException(
             status_code=403, 
-            detail=f"您的{tier_names.get(tier, '免费版')}账户最多只能添加 {limit} 个密钥，当前已有 {current_count} 个。请升级会员以添加更多密钥。"
+            detail=f"密钥数量已达上限 {limit} 个，当前已有 {current_count} 个。"
         )
     
     provider = db.query(ApiProvider).filter(ApiProvider.id == key_data.provider_id).first()
