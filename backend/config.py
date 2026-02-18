@@ -15,7 +15,9 @@ class Settings:
     if not _database_url:
         if ENV == "production":
             raise ValueError("DATABASE_URL environment variable is required in production")
-        _database_url = "postgresql://postgres:123456@localhost:5432/llm_api_manager"
+        # 开发环境提示用户配置数据库
+        _database_url = "postgresql://postgres:your_password@localhost:5432/llm_api_manager"
+        logger.warning("⚠️  使用示例数据库连接，请配置 .env 文件中的 DATABASE_URL")
     DATABASE_URL: str = _database_url
     
     # Security - 生产环境必须设置环境变量
