@@ -150,14 +150,6 @@ def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db))
     user.locked_until = None
     user.last_login = datetime.utcnow()
     
-    # 检查会员状态
-    membership_status = None
-    if user.membership_tier != 'free' and user.membership_expire_at:
-        from membership_service import check_membership_on_login_sync
-        membership_status = check_membership_on_login_sync(user.id, db)
-        # 刷新用户数据（可能已降级）
-        db.refresh(user)
-    
     db.commit()
     
     # Create access token
