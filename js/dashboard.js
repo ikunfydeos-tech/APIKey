@@ -944,10 +944,9 @@ async function checkKeyLimitBeforeAdd() {
         
         if (response.ok) {
             const limits = await response.json();
-            if (!limits.can_add) {
-                // 已达上限，显示升级提示
-                const tierNames = { 'free': '免费版', 'basic': '基础版', 'pro': '专业版' };
-                const message = `您的${tierNames[limits.tier] || '免费版'}账户最多只能添加 ${limits.limit} 个密钥，当前已有 ${limits.current_count} 个。请升级会员以添加更多密钥。`;
+            // limit 为 -1 表示无限制
+            if (limits.limit !== -1 && !limits.can_add) {
+                const message = `密钥数量已达上限 ${limits.limit} 个，当前已有 ${limits.current_count} 个。`;
                 showKeyLimitError(message);
                 return false;
             }
