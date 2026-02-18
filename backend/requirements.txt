@@ -1,13 +1,32 @@
+# API Key Manager 依赖
+
+# 核心框架
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
-psycopg[binary]==3.2.3
 sqlalchemy==2.0.35
 pydantic[email]==2.9.2
+
+# SQLite 支持（默认，无需安装数据库）
+aiosqlite==0.20.0
+
+# PostgreSQL 支持（生产环境推荐，可选）
+# 如果使用 PostgreSQL，请取消下面这行注释
+# psycopg[binary]==3.2.3
+
+# 安全认证
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.12
 cryptography==43.0.3
+
+# HTTP 客户端
 httpx==0.27.2
+
+# 速率限制
 slowapi==0.1.9
+
+# 图像处理
 pillow==11.0.0
+
+# 定时任务
 apscheduler==3.10.4

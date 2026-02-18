@@ -10,15 +10,19 @@ class Settings:
     ENV: str = os.getenv("ENV", "development")
     DEBUG: bool = ENV == "development"
     
-    # Database - 生产环境必须设置环境变量
+    # Database - 开发环境默认使用 SQLite，生产环境推荐 PostgreSQL
     _database_url = os.getenv("DATABASE_URL")
     if not _database_url:
         if ENV == "production":
             raise ValueError("DATABASE_URL environment variable is required in production")
-        # 开发环境提示用户配置数据库
-        _database_url = "postgresql://postgres:your_password@localhost:5432/llm_api_manager"
-        logger.warning("⚠️  使用示例数据库连接，请配置 .env 文件中的 DATABASE_URL")
+        # 开发环境使用 SQLite，无需安装数据库
+        _database_url = "sqlite:///./api_manager.db"
+        logger.info("💡 使用 SQLite 数据库（开发环境默认）")
+        logger.info("   生产环境请配置 PostgreSQL: DATABASE_URL=postgresql://user:pass@host:5432/db")
     DATABASE_URL: str = _database_url
+    
+    # 数据库类型判断
+    USE_SQLITE: bool = DATABASE_URL.startswith("sqlite")
     
     # Security - 生产环境必须设置环境变量
     SECRET_KEY: str = os.getenv("SECRET_KEY")
