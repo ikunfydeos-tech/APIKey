@@ -12,6 +12,10 @@ from log_middleware import log_middleware
 from security_middleware import admin_api_middleware, block_admin_page_access
 from admin_path import get_admin_path, get_admin_api_prefix, init_admin_path
 from pathlib import Path
+import os
+
+# 获取前端静态文件目录
+FRONTEND_DIR = Path(__file__).parent.parent
 
 # 初始化管理员路径（服务启动时）
 admin_path = init_admin_path()
@@ -102,6 +106,35 @@ async def add_security_headers(request: Request, call_next):
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+# 挂载静态文件目录（CSS、JS、图片等）
+app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
+app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
+app.mount("/images", StaticFiles(directory=FRONTEND_DIR / "images"), name="images")
+app.mount("/icons", StaticFiles(directory=FRONTEND_DIR / "icons"), name="icons")
+
+
+# 首页路由
+@app.get("/")
+async def read_index():
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return {"error": "index.html not found"}
+
+
+# 其他 HTML 页面路由
+@app.get("/{page_name}.html")
+async def read_page(page_name: str):
+    # 安全检查：防止路径遍历攻击
+    if ".." in page_name or "/" in page_name:
+        return {"error": "Invalid page name"}
+    
+    page_file = FRONTEND_DIR / f"{page_name}.html"
+    if page_file.exists():
+        return FileResponse(page_file)
+    return {"error": f"{page_name}.html not found"}
 
 
 if __name__ == "__main__":
