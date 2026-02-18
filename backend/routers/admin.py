@@ -8,7 +8,7 @@ from typing import Optional, List
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from database import get_db
-from models import ApiProvider, ApiModel, UserApiKey
+from models import ApiProvider, ApiModel, UserApiKey, LogEntry
 from schemas import MessageResponse
 from auth import get_current_admin_user
 from models import User
@@ -144,7 +144,20 @@ def get_users(
     current_user: User = Depends(get_current_admin_user)
 ):
     """获取用户列表"""
-    query = db.query(User)
+    from sqlalchemy import func
+    
+    # 使用子查询一次性获取所有用户的密钥数量，避免 N+1 查询
+    key_count_subquery = (
+        db.query(
+            UserApiKey.user_id,
+            func.count(UserApiKey.id).label('key_count')
+        )
+        .group_by(UserApiKey.user_id)
+        .subquery()
+    )
+    
+    query = db.query(User, func.coalesce(key_count_subquery.c.key_count, 0).label('key_count'))\
+        .outerjoin(key_count_subquery, User.id == key_count_subquery.c.user_id)
     
     if search:
         query = query.filter(
@@ -161,12 +174,11 @@ def get_users(
         query = query.filter(User.is_active == False)
     
     total = query.count()
-    users = query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    results = query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
     
-    # 获取每个用户的密钥数量
+    # 构建返回数据
     user_list = []
-    for user in users:
-        key_count = db.query(UserApiKey).filter(UserApiKey.user_id == user.id).count()
+    for user, key_count in results:
         user_list.append({
             "id": user.id,
             "username": user.username,

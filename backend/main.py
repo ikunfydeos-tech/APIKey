@@ -6,11 +6,12 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from config import settings
-from routers import auth, keys, totp
+from routers import auth, keys, totp, payment
 from routers import admin as admin_router
 from log_middleware import log_middleware
 from security_middleware import admin_api_middleware, block_admin_page_access
 from admin_path import get_admin_path, get_admin_api_prefix, init_admin_path
+from membership_service import start_scheduler, stop_scheduler
 from pathlib import Path
 
 # 初始化管理员路径（服务启动时）
@@ -60,6 +61,7 @@ async def block_admin_page_access_wrapper(request: Request, call_next):
 app.include_router(auth.router)
 app.include_router(keys.router)
 app.include_router(totp.router)
+app.include_router(payment.router)  # 支付回调路由
 
 # 动态注册管理员路由（使用动态前缀）
 admin_api_prefix = get_admin_api_prefix()
@@ -102,6 +104,23 @@ async def add_security_headers(request: Request, call_next):
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时执行"""
+    # 启动会员检查定时任务
+    start_scheduler()
+    print("[Membership] 会员检查定时任务已启动")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """应用关闭时执行"""
+    # 停止定时任务
+    stop_scheduler()
+    print("[Membership] 会员检查定时任务已停止")
+
 
 if __name__ == "__main__":
     import uvicorn

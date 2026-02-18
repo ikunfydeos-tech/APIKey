@@ -395,6 +395,132 @@
     margin-top: 0.25rem;
 }
 
+/* 密钥限制显示 */
+.key-limit {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+.key-limit.at-limit {
+    color: #f59e0b;
+}
+
+.limit-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.limit-badge.unlimited {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* 密钥限制弹窗 */
+.limit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+}
+
+.limit-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    max-width: 400px;
+    text-align: center;
+    animation: slideUp 0.3s ease;
+}
+
+.limit-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.limit-modal-icon i svg {
+    width: 32px;
+    height: 32px;
+    stroke: white;
+}
+
+.limit-modal h3 {
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.limit-modal p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.limit-modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.limit-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+}
+
+.limit-btn.secondary {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.limit-btn.secondary:hover {
+    background: var(--bg-hover);
+}
+
+.limit-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), #0d9488);
+    border: none;
+    color: white;
+}
+
+.limit-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+}
+
+.limit-btn i svg {
+    width: 16px;
+    height: 16px;
+}
+
 .stat-icon {
     width: 56px;
     height: 56px;
@@ -1793,4 +1919,261 @@
         min-width: 80px;
         text-align: center;
     }
+}
+
+/* 升级会员按钮 */
+.upgrade-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 0 1rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.upgrade-btn:hover {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    transform: translateY(-1px);
+}
+
+.upgrade-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* 会员状态显示 */
+.membership-status {
+    margin: 0.5rem 1rem;
+    padding: 0.75rem;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--border-radius-sm);
+}
+
+.membership-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fbbf24;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.membership-badge svg {
+    width: 16px;
+    height: 16px;
+}
+
+.membership-expire {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.membership-status.pro {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.membership-status.pro .membership-badge {
+    color: #a855f7;
+}
+
+/* 升级弹窗 */
+.upgrade-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.upgrade-modal-content {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+}
+
+.upgrade-modal-content h2 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.upgrade-modal-content p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.upgrade-plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.upgrade-plan-card {
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upgrade-plan-card:hover {
+    border-color: var(--primary-color);
+}
+
+.upgrade-plan-card.selected {
+    border-color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.upgrade-plan-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.upgrade-plan-card .price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.upgrade-plan-card .price span {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.upgrade-plan-card ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.upgrade-plan-card li {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    padding: 0.25rem 0;
+}
+
+.upgrade-plan-card li::before {
+    content: "✓ ";
+    color: #10b981;
+}
+
+/* 会员提醒 Toast */
+.membership-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+    max-width: 380px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.membership-toast .toast-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.membership-toast .toast-content > svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.membership-toast .toast-content > div {
+    flex: 1;
+}
+
+.membership-toast .toast-content strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.membership-toast .toast-content p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.membership-toast .toast-content button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.membership-toast .toast-content button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.membership-toast .renew-btn {
+    display: block;
+    text-align: center;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+    transition: background 0.2s;
+}
+
+.membership-toast .renew-btn:hover {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.membership-toast.expired .toast-content > svg {
+    color: #ef4444;
+}
+
+.membership-toast.expired .renew-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.membership-toast.expired .renew-btn:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+.membership-toast.expiring .toast-content > svg {
+    color: #f59e0b;
 }

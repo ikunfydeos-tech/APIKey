@@ -3,6 +3,14 @@
 // API 基础地址（前后端端口分离：前端5500，后端8000）
 const API_BASE_URL = 'http://localhost:8000';
 
+// XSS 防护：HTML 转义函数
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // 数据存储
 let apiKeys = [];
 let providers = {};
@@ -13,6 +21,9 @@ let isRefreshing = false;
 
 // 搜索防抖定时器
 let searchTimeout = null;
+
+// 当前页面状态 ('keys' | 'usage')
+let currentPage = 'keys';
 
 // 服务商图标映射（Lucide 图标名称）
 const providerIconMap = {
@@ -65,10 +76,45 @@ function getAuthHeaders() {
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', async function() {
+    // 先根据 URL 参数立即设置页面状态，避免闪烁
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page');
+    
+    // 立即设置页面显示状态（在异步操作之前）
+    if (page === 'usage') {
+        const keyManagePage = document.getElementById('keyManagePage');
+        const usagePage = document.getElementById('usagePage');
+        const currentPageName = document.getElementById('currentPageName');
+        
+        if (keyManagePage) keyManagePage.style.display = 'none';
+        if (usagePage) usagePage.style.display = 'block';
+        if (currentPageName) currentPageName.textContent = '使用统计';
+        currentPage = 'usage';
+        updateNavActive('navUsage');
+    } else if (page === 'provider') {
+        updateNavActive('navProviderConfig');
+    } else {
+        // 默认密钥管理页面
+        updateNavActive('navKeyManage');
+    }
+    
+    // 移除 CSS 闪烁控制属性，让 JS 动态修改能正常生效
+    document.documentElement.removeAttribute('data-initial-page');
+    
     const isLoggedIn = await checkLoginStatus();
     if (isLoggedIn) {
         displayUsername();
         await loadProviders();
+        
+        // 如果是服务商配置页面，打开弹窗
+        if (page === 'provider') {
+            openProviderConfigModal();
+        }
+        
+        // 如果是使用统计页面，加载数据
+        if (page === 'usage') {
+            loadUsageData();
+        }
     }
     initEventListeners();
 });
@@ -105,7 +151,10 @@ function displayUsername() {
     const userStr = localStorage.getItem('user');
     if (userStr) {
         const user = JSON.parse(userStr);
-        document.getElementById('usernameDisplay').textContent = user.username || '用户';
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        if (usernameDisplay) {
+            usernameDisplay.textContent = user.username || '用户';
+        }
         
         // 动态设置角色标签
         const roleDisplay = document.getElementById('userRoleDisplay');
@@ -120,6 +169,162 @@ function displayUsername() {
                 adminNav.style.display = 'flex';
             }
         }
+        
+        // 检查并显示会员状态
+        checkMembershipStatus();
+    }
+}
+
+// 检查会员状态
+async function checkMembershipStatus() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const membershipStatus = document.getElementById('membershipStatus');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/webhook/membership/status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const membership = await response.json();
+            updateMembershipUI(membership);
+        } else {
+            // API 返回错误（如 401、500 等），默认显示升级按钮
+            if (upgradeBtn) upgradeBtn.style.display = 'flex';
+            if (membershipStatus) membershipStatus.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('获取会员状态失败:', error);
+        // 网络错误等，默认显示升级按钮
+        if (upgradeBtn) upgradeBtn.style.display = 'flex';
+        if (membershipStatus) membershipStatus.style.display = 'none';
+    }
+}
+
+// 更新会员状态UI
+function updateMembershipUI(membership) {
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const membershipStatus = document.getElementById('membershipStatus');
+    const membershipTier = document.getElementById('membershipTier');
+    const membershipExpire = document.getElementById('membershipExpire');
+    
+    if (membership.tier === 'free' || !membership.is_active) {
+        // 免费用户：显示升级按钮
+        if (upgradeBtn) upgradeBtn.style.display = 'flex';
+        if (membershipStatus) membershipStatus.style.display = 'none';
+        
+        // 如果是从付费降级的，显示提示
+        if (membership.expired) {
+            showMembershipExpiredToast();
+        }
+    } else {
+        // 付费用户：显示会员状态
+        if (upgradeBtn) upgradeBtn.style.display = 'none';
+        if (membershipStatus) membershipStatus.style.display = 'block';
+        
+        // 设置会员等级显示
+        const tierNames = {
+            'basic': '基础版',
+            'pro': '专业版'
+        };
+        if (membershipTier) membershipTier.textContent = tierNames[membership.tier] || membership.tier;
+        
+        // 设置到期时间
+        if (membership.expire_at) {
+            const expireDate = new Date(membership.expire_at);
+            if (membershipExpire) membershipExpire.textContent = `到期: ${expireDate.toLocaleDateString('zh-CN')}`;
+            
+            // 检查是否即将到期（7天内）
+            const daysLeft = membership.days_left || 0;
+            if (daysLeft <= 7 && membershipExpire) {
+                membershipExpire.innerHTML = `<span style="color: #f59e0b;">到期: ${expireDate.toLocaleDateString('zh-CN')} (${daysLeft}天后)</span>`;
+                
+                // 显示即将到期提醒
+                if (daysLeft <= 3) {
+                    showMembershipExpiringToast(daysLeft);
+                }
+            }
+        }
+        
+        // 专业版样式
+        if (membership.tier === 'pro' && membershipStatus) {
+            membershipStatus.classList.add('pro');
+        }
+    }
+}
+
+// 显示会员过期提示
+function showMembershipExpiredToast() {
+    const toast = document.createElement('div');
+    toast.className = 'membership-toast expired';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i data-lucide="alert-circle"></i>
+            <div>
+                <strong>会员已过期</strong>
+                <p>您的会员已过期，已自动降级为免费版。部分功能将受限。</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <a href="#" onclick="openUpgradeModal(event)" class="renew-btn">立即续费</a>
+    `;
+    document.body.appendChild(toast);
+    lucide.createIcons();
+    
+    // 5秒后自动消失
+    setTimeout(() => toast.remove(), 10000);
+}
+
+// 显示即将到期提醒
+function showMembershipExpiringToast(daysLeft) {
+    const toast = document.createElement('div');
+    toast.className = 'membership-toast expiring';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i data-lucide="clock"></i>
+            <div>
+                <strong>会员即将到期</strong>
+                <p>您的会员将于 ${daysLeft} 天后到期，到期后部分功能将受限。</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <a href="#" onclick="openUpgradeModal(event)" class="renew-btn">续费</a>
+    `;
+    document.body.appendChild(toast);
+    lucide.createIcons();
+}
+
+// 打开升级会员弹窗
+function openUpgradeModal(event) {
+    if (event) event.preventDefault();
+    
+    const userStr = localStorage.getItem('user');
+    let userId = '';
+    if (userStr) {
+        const user = JSON.parse(userStr);
+        userId = user.id;
+    }
+    
+    // 爱发电链接（TODO: 替换为实际的商品链接）
+    const AFDIAN_BASIC_URL = 'https://afdian.net/item/你的基础版商品ID';
+    const AFDIAN_PRO_URL = 'https://afdian.net/item/你的专业版商品ID';
+    
+    // 显示选择弹窗
+    const choice = confirm('请选择套餐:\n\n点击"确定" → 基础版 ¥19/月\n点击"取消" → 专业版 ¥49/月');
+    
+    if (choice) {
+        // 基础版
+        window.open(`${AFDIAN_BASIC_URL}?custom=user_${userId}`, '_blank');
+    } else {
+        // 专业版
+        window.open(`${AFDIAN_PRO_URL}?custom=user_${userId}`, '_blank');
     }
 }
 
@@ -237,7 +442,9 @@ function renderProviderSelect(providerList) {
     html += '<option value="__add_custom__" data-is-custom="true">➕ 添加自定义服务商...</option>';
     html += '</optgroup>';
     
-    providerSelect.innerHTML = html;
+    if (providerSelect) {
+        providerSelect.innerHTML = html;
+    }
 }
 
 // 服务商选择变化时加载对应模型
@@ -245,8 +452,10 @@ function onProviderChange() {
     const providerId = providerSelect.value;
     
     // 隐藏模型详情和测试结果
-    document.getElementById('modelInfoRow').style.display = 'none';
-    document.getElementById('testResultRow').style.display = 'none';
+    const modelInfoRow = document.getElementById('modelInfoRow');
+    const testResultRow = document.getElementById('testResultRow');
+    if (modelInfoRow) modelInfoRow.style.display = 'none';
+    if (testResultRow) testResultRow.style.display = 'none';
     
     // 检查是否选择了"添加自定义服务商"
     if (providerId === '__add_custom__') {
@@ -267,21 +476,23 @@ function onProviderChange() {
     const testHint = document.getElementById('testHint');
     
     if (!providerId || parsedId <= 0) {
-        modelSelect.innerHTML = '<option value="">不指定模型</option>';
+        if (modelSelect) {
+            modelSelect.innerHTML = '<option value="">不指定模型</option>';
+        }
         hideCustomModelInput();
         // 隐藏测试按钮和提示
-        testBtn.style.display = 'none';
-        testHint.style.display = 'none';
+        if (testBtn) testBtn.style.display = 'none';
+        if (testHint) testHint.style.display = 'none';
         return;
     }
     
     // 根据是否为自定义服务商显示/隐藏测试按钮
     if (isCustom) {
-        testBtn.style.display = 'none';
-        testHint.style.display = 'flex';
+        if (testBtn) testBtn.style.display = 'none';
+        if (testHint) testHint.style.display = 'flex';
     } else {
-        testBtn.style.display = 'flex';
-        testHint.style.display = 'none';
+        if (testBtn) testBtn.style.display = 'flex';
+        if (testHint) testHint.style.display = 'none';
     }
     
     // 检查是否为自定义服务商或"自定义"选项
@@ -384,7 +595,9 @@ function onProviderChange() {
     // 添加手动输入选项
     optionsHtml += '<optgroup label="其他"><option value="__custom__">✏️ 手动输入模型ID...</option></optgroup>';
     
-    modelSelect.innerHTML = optionsHtml;
+    if (modelSelect) {
+        modelSelect.innerHTML = optionsHtml;
+    }
     
     // 自动选择使用频率最高的模型，或者默认模型
     const mostUsedModel = frequentlyUsed[0];
@@ -426,21 +639,31 @@ function onModelChange() {
     }
     
     // 更新模型详情显示
-    document.getElementById('modelInfoName').textContent = modelInfo.model_name || modelInfo.model_id;
-    document.getElementById('modelInfoId').textContent = modelInfo.model_id;
-    document.getElementById('modelInfoContext').textContent = modelInfo.context_window || '未知';
+    const modelInfoName = document.getElementById('modelInfoName');
+    const modelInfoId = document.getElementById('modelInfoId');
+    const modelInfoContext = document.getElementById('modelInfoContext');
+    const modelInfoCategory = document.getElementById('modelInfoCategory');
+    
+    if (modelInfoName) modelInfoName.textContent = modelInfo.model_name || modelInfo.model_id;
+    if (modelInfoId) modelInfoId.textContent = modelInfo.model_id;
+    if (modelInfoContext) modelInfoContext.textContent = modelInfo.context_window || '未知';
     
     const categoryInfo = categoryMap[modelInfo.category] || { name: modelInfo.category || '未知' };
-    document.getElementById('modelInfoCategory').textContent = categoryInfo.name;
+    if (modelInfoCategory) modelInfoCategory.textContent = categoryInfo.name;
     
-    modelInfoRow.style.display = 'block';
+    if (modelInfoRow) modelInfoRow.style.display = 'block';
     lucide.createIcons();
 }
 
 // 显示自定义模型输入框
 function showCustomModelInput() {
     const modelInputGroup = document.getElementById('modelInputGroup');
-    const modelSelectGroup = document.getElementById('model').closest('.form-group');
+    const model = document.getElementById('model');
+    let modelSelectGroup = null;
+    
+    if (model) {
+        modelSelectGroup = model.closest('.form-group');
+    }
     
     if (modelInputGroup) {
         modelInputGroup.style.display = 'block';
@@ -453,7 +676,12 @@ function showCustomModelInput() {
 // 隐藏自定义模型输入框，显示下拉框
 function hideCustomModelInput() {
     const modelInputGroup = document.getElementById('modelInputGroup');
-    const modelSelectGroup = document.getElementById('model').closest('.form-group');
+    const model = document.getElementById('model');
+    let modelSelectGroup = null;
+    
+    if (model) {
+        modelSelectGroup = model.closest('.form-group');
+    }
     
     if (modelInputGroup) {
         modelInputGroup.style.display = 'none';
@@ -481,6 +709,8 @@ async function loadApiKeys() {
             apiKeys = await response.json();
             renderTable();
             updateStats();
+            // 加载密钥限制信息
+            loadKeyLimits();
         } else if (response.status === 401) {
             handleAuthError();
         } else {
@@ -496,6 +726,88 @@ async function loadApiKeys() {
             showToast('加载密钥失败: ' + error.message, 'error');
         }
     }
+}
+
+// 加载密钥限制信息
+async function loadKeyLimits() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/keys/limits`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+            const limits = await response.json();
+            updateKeyLimitUI(limits);
+        }
+    } catch (error) {
+        console.error('加载密钥限制失败:', error);
+    }
+}
+
+// 更新密钥限制 UI
+function updateKeyLimitUI(limits) {
+    const keyLimitEl = document.getElementById('keyLimit');
+    const keyLimitValueEl = document.getElementById('keyLimitValue');
+    const keyLimitBadgeEl = document.getElementById('keyLimitBadge');
+    const totalKeysEl = document.getElementById('totalKeys');
+    
+    if (!keyLimitEl || !keyLimitValueEl || !keyLimitBadgeEl) return;
+    
+    // 显示限制
+    if (limits.limit === -1 || limits.limit === null) {
+        // 无限制
+        keyLimitEl.style.display = 'inline';
+        keyLimitValueEl.textContent = '∞';
+        keyLimitValueEl.parentElement.classList.remove('at-limit');
+        keyLimitBadgeEl.style.display = 'none';
+    } else {
+        // 有上限
+        keyLimitEl.style.display = 'inline';
+        keyLimitValueEl.textContent = limits.limit;
+        
+        // 检查是否已达上限
+        if (limits.current_count >= limits.limit) {
+            keyLimitValueEl.parentElement.classList.add('at-limit');
+            keyLimitBadgeEl.style.display = 'inline';
+            keyLimitBadgeEl.textContent = '已满';
+            keyLimitBadgeEl.className = 'limit-badge';
+        } else {
+            keyLimitValueEl.parentElement.classList.remove('at-limit');
+            keyLimitBadgeEl.style.display = 'none';
+        }
+    }
+}
+
+// 显示密钥限制错误提示
+function showKeyLimitError(message) {
+    // 创建自定义弹窗
+    const modal = document.createElement('div');
+    modal.className = 'limit-modal-overlay';
+    modal.innerHTML = `
+        <div class="limit-modal">
+            <div class="limit-modal-icon">
+                <i data-lucide="alert-circle"></i>
+            </div>
+            <h3>密钥数量已达上限</h3>
+            <p>${escapeHtml(message)}</p>
+            <div class="limit-modal-actions">
+                <button class="limit-btn secondary" onclick="this.closest('.limit-modal-overlay').remove()">知道了</button>
+                <button class="limit-btn primary" onclick="openUpgradeModal(event); this.closest('.limit-modal-overlay').remove();">
+                    <i data-lucide="crown"></i>
+                    升级会员
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    lucide.createIcons();
+    
+    // 点击背景关闭
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 // 刷新数据
@@ -615,10 +927,42 @@ function initEventListeners() {
         e.preventDefault();
         saveKey();
     });
+
+    // 点击弹窗外部关闭弹窗
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            // 只有点击遮罩层本身才关闭，点击弹窗内容不关闭
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                // 如果是服务商配置弹窗，恢复导航状态
+                if (modal.id === 'providerConfigModal') {
+                    restoreNavState();
+                }
+            }
+        });
+    });
+
+    // ESC 键关闭弹窗
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                activeModal.classList.remove('active');
+                if (activeModal.id === 'providerConfigModal') {
+                    restoreNavState();
+                }
+            }
+        }
+    });
 }
 
 // 渲染表格
 function renderTable(keysToRender = apiKeys) {
+    if (!keysTableBody || !emptyState) {
+        console.error('renderTable: DOM 元素未找到');
+        return;
+    }
+    
     if (keysToRender.length === 0) {
         keysTableBody.innerHTML = '';
         emptyState.style.display = 'block';
@@ -658,15 +1002,15 @@ function createTableRow(key) {
     let categoryTag = '';
     if (modelCategory && categoryMap[modelCategory]) {
         const cat = categoryMap[modelCategory];
-        categoryTag = `<span class="category-tag" style="background: ${cat.color}20; color: ${cat.color}; border: 1px solid ${cat.color}40;" title="${cat.name}">
-            <i data-lucide="${cat.icon}" style="width: 12px; height: 12px;"></i>
+        categoryTag = `<span class="category-tag" style="background: ${escapeHtml(cat.color)}20; color: ${escapeHtml(cat.color)}; border: 1px solid ${escapeHtml(cat.color)}40;" title="${escapeHtml(cat.name)}">
+            <i data-lucide="${escapeHtml(cat.icon)}" style="width: 12px; height: 12px;"></i>
         </span>`;
     }
     
-    // 复制模型ID按钮
+    // 复制模型ID按钮 - 使用 data 属性避免 XSS
     let copyModelBtn = '';
     if (modelId) {
-        copyModelBtn = `<button class="copy-btn copy-model-btn" onclick="copyModelId('${modelId}', this)" title="复制模型ID">
+        copyModelBtn = `<button class="copy-btn copy-model-btn" data-model-id="${escapeHtml(modelId)}" onclick="copyModelId(this.dataset.modelId, this)" title="复制模型ID">
             <i data-lucide="copy"></i>
         </button>`;
     }
@@ -676,22 +1020,22 @@ function createTableRow(key) {
             <td>
                 <div class="provider-cell">
                     <div class="provider-icon">
-                        <i data-lucide="${provider.icon}"></i>
+                        <i data-lucide="${escapeHtml(provider.icon)}"></i>
                     </div>
-                    <span class="provider-name">${provider.name}</span>
+                    <span class="provider-name">${escapeHtml(provider.name)}</span>
                 </div>
             </td>
-            <td>${key.key_name}</td>
+            <td>${escapeHtml(key.key_name)}</td>
             <td>
                 <div class="model-cell">
                     ${categoryTag}
-                    <code class="model-code">${modelDisplay}</code>
+                    <code class="model-code">${escapeHtml(modelDisplay)}</code>
                     ${copyModelBtn}
                 </div>
             </td>
             <td>
                 <div class="key-cell">
-                    <code>${maskedKey}</code>
+                    <code>${escapeHtml(maskedKey)}</code>
                     <button class="copy-btn" onclick="copyKey(${key.id}, this)" title="复制密钥">
                         <i data-lucide="copy"></i>
                     </button>
@@ -723,10 +1067,15 @@ function createTableRow(key) {
 
 // 更新统计数据
 function updateStats() {
-    document.getElementById('totalKeys').textContent = apiKeys.length;
-    document.getElementById('activeKeys').textContent = apiKeys.filter(k => k.status === 'active').length;
-    document.getElementById('inactiveKeys').textContent = apiKeys.filter(k => k.status === 'inactive').length;
-    document.getElementById('totalProviders').textContent = [...new Set(apiKeys.map(k => k.provider_id))].length;
+    const totalKeysEl = document.getElementById('totalKeys');
+    const activeKeysEl = document.getElementById('activeKeys');
+    const inactiveKeysEl = document.getElementById('inactiveKeys');
+    const totalProvidersEl = document.getElementById('totalProviders');
+    
+    if (totalKeysEl) totalKeysEl.textContent = apiKeys.length;
+    if (activeKeysEl) activeKeysEl.textContent = apiKeys.filter(k => k.status === 'active').length;
+    if (inactiveKeysEl) inactiveKeysEl.textContent = apiKeys.filter(k => k.status === 'inactive').length;
+    if (totalProvidersEl) totalProvidersEl.textContent = [...new Set(apiKeys.map(k => k.provider_id))].length;
 }
 
 // 搜索密钥
@@ -769,11 +1118,51 @@ function toggleSidebar() {
     document.querySelector('.sidebar').classList.toggle('open');
 }
 
+// 检查密钥限制（添加前预检）
+async function checkKeyLimitBeforeAdd() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/keys/limits`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+            const limits = await response.json();
+            if (!limits.can_add) {
+                // 已达上限，显示升级提示
+                const tierNames = { 'free': '免费版', 'basic': '基础版', 'pro': '专业版' };
+                const message = `您的${tierNames[limits.tier] || '免费版'}账户最多只能添加 ${limits.limit} 个密钥，当前已有 ${limits.current_count} 个。请升级会员以添加更多密钥。`;
+                showKeyLimitError(message);
+                return false;
+            }
+            return true;
+        }
+        return true; // API 失败时不阻止用户操作
+    } catch (error) {
+        console.error('检查密钥限制失败:', error);
+        return true; // 网络错误时不阻止用户操作
+    }
+}
+
 // 打开添加弹窗
 function openAddModal() {
+    // 检查密钥数量限制
+    checkKeyLimitBeforeAdd().then(canAdd => {
+        if (!canAdd) {
+            return; // 限制检查函数会显示升级弹窗
+        }
+        // 继续打开添加表单
+        openAddModalInternal();
+    });
+}
+
+// 内部函数：打开添加表单
+function openAddModalInternal() {
     editingKeyId = null;
-    document.getElementById('modalTitle').textContent = '添加API密钥';
-    keyForm.reset();
+    const modalTitle = document.getElementById('modalTitle');
+    if (modalTitle) modalTitle.textContent = '添加API密钥';
+    
+    if (keyForm) keyForm.reset();
+    
     // 完整重置测试连接结果区域
     const testResultRow = document.getElementById('testResultRow');
     const testResultCard = document.getElementById('testResultCard');
@@ -781,28 +1170,35 @@ function openAddModal() {
     const testResultTitle = document.getElementById('testResultTitle');
     const testResultMessage = document.getElementById('testResultMessage');
     
-    testResultRow.style.display = 'none';
-    testResultCard.className = 'test-result-card';
-    testResultIcon.innerHTML = '';
-    testResultTitle.textContent = '-';
-    testResultMessage.textContent = '-';
+    if (testResultRow) testResultRow.style.display = 'none';
+    if (testResultCard) {
+        testResultCard.className = 'test-result-card';
+        testResultCard.classList.remove('testing', 'success', 'error');
+    }
+    if (testResultIcon) testResultIcon.innerHTML = '';
+    if (testResultTitle) testResultTitle.textContent = '-';
+    if (testResultMessage) testResultMessage.textContent = '-';
     
-    document.getElementById('modelInfoRow').style.display = 'none';
+    const modelInfoRow = document.getElementById('modelInfoRow');
+    if (modelInfoRow) modelInfoRow.style.display = 'none';
+    
     // 重置测试按钮状态
     const testBtn = document.getElementById('testConnectionBtn');
     if (testBtn) {
         testBtn.disabled = false;
         testBtn.classList.remove('testing');
     }
-    addModal.classList.add('active');
+    
+    if (addModal) addModal.classList.add('active');
     lucide.createIcons();
 }
 
 // 关闭添加弹窗
 function closeAddModal() {
-    addModal.classList.remove('active');
-    keyForm.reset();
+    if (addModal) addModal.classList.remove('active');
+    if (keyForm) keyForm.reset();
     editingKeyId = null;
+    
     // 完整重置测试连接结果区域
     const testResultRow = document.getElementById('testResultRow');
     const testResultCard = document.getElementById('testResultCard');
@@ -810,13 +1206,17 @@ function closeAddModal() {
     const testResultTitle = document.getElementById('testResultTitle');
     const testResultMessage = document.getElementById('testResultMessage');
     
-    testResultRow.style.display = 'none';
-    testResultCard.className = 'test-result-card';
-    testResultIcon.innerHTML = '';
-    testResultTitle.textContent = '-';
-    testResultMessage.textContent = '-';
+    if (testResultRow) testResultRow.style.display = 'none';
+    if (testResultCard) {
+        testResultCard.className = 'test-result-card';
+        testResultCard.classList.remove('testing', 'success', 'error');
+    }
+    if (testResultIcon) testResultIcon.innerHTML = '';
+    if (testResultTitle) testResultTitle.textContent = '-';
+    if (testResultMessage) testResultMessage.textContent = '-';
     
-    document.getElementById('modelInfoRow').style.display = 'none';
+    const modelInfoRow = document.getElementById('modelInfoRow');
+    if (modelInfoRow) modelInfoRow.style.display = 'none';
 }
 
 // 编辑密钥
@@ -831,12 +1231,23 @@ async function editKey(id) {
             const key = await response.json();
             
             editingKeyId = id;
-            document.getElementById('modalTitle').textContent = '编辑API密钥';
-            document.getElementById('keyId').value = id;
-            document.getElementById('provider').value = key.provider_id || '';
-            document.getElementById('keyName').value = key.key_name;
-            document.getElementById('apiKey').value = key.api_key;
-            document.getElementById('keyNote').value = key.notes || '';
+            const modalTitle = document.getElementById('modalTitle');
+            if (modalTitle) modalTitle.textContent = '编辑API密钥';
+            
+            const keyId = document.getElementById('keyId');
+            if (keyId) keyId.value = id;
+            
+            const provider = document.getElementById('provider');
+            if (provider) provider.value = key.provider_id || '';
+            
+            const keyName = document.getElementById('keyName');
+            if (keyName) keyName.value = key.key_name;
+            
+            const apiKey = document.getElementById('apiKey');
+            if (apiKey) apiKey.value = key.api_key;
+            
+            const keyNote = document.getElementById('keyNote');
+            if (keyNote) keyNote.value = key.notes || '';
             
             // 触发服务商变化以加载模型列表
             onProviderChange();
@@ -849,7 +1260,8 @@ async function editKey(id) {
                     
                     if (modelInList) {
                         // 模型在列表中，设置下拉框值
-                        document.getElementById('model').value = key.model_id;
+                        const model = document.getElementById('model');
+                        if (model) model.value = key.model_id;
                         onModelChange();
                     } else {
                         // 模型不在列表中，显示输入框并填入模型ID
@@ -862,7 +1274,7 @@ async function editKey(id) {
                 }, 100);
             }
             
-            addModal.classList.add('active');
+            if (addModal) addModal.classList.add('active');
             lucide.createIcons();
         }
     } catch (error) {
@@ -873,12 +1285,20 @@ async function editKey(id) {
 
 // 保存密钥
 async function saveKey() {
-    const providerValue = document.getElementById('provider').value.trim();
+    const provider = document.getElementById('provider');
+    const providerValue = provider ? provider.value.trim() : '';
     const providerId = parseInt(providerValue);
+    
     const modelId = getModelValue();  // 使用统一的模型值获取函数
-    const name = document.getElementById('keyName').value.trim();
-    const key = document.getElementById('apiKey').value.trim();
-    const note = document.getElementById('keyNote').value.trim();
+    
+    const keyName = document.getElementById('keyName');
+    const name = keyName ? keyName.value.trim() : '';
+    
+    const apiKey = document.getElementById('apiKey');
+    const key = apiKey ? apiKey.value.trim() : '';
+    
+    const keyNote = document.getElementById('keyNote');
+    const note = keyNote ? keyNote.value.trim() : '';
 
     if (!providerValue || !name || !key) {
         showToast('请填写必填字段', 'error');
@@ -921,7 +1341,12 @@ async function saveKey() {
             loadApiKeys();
         } else {
             const error = await response.json();
-            showToast(error.detail || '操作失败', 'error');
+            // 检查是否是密钥数量限制错误
+            if (response.status === 403 && error.detail && error.detail.includes('密钥')) {
+                showKeyLimitError(error.detail);
+            } else {
+                showToast(error.detail || '操作失败', 'error');
+            }
         }
     } catch (error) {
         console.error('保存密钥失败:', error);
@@ -1096,6 +1521,8 @@ async function copyModelId(modelId, button) {
 // 切换密码显示
 function toggleKeyPassword() {
     const input = document.getElementById('apiKey');
+    if (!input) return;
+    
     const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
     input.setAttribute('type', type);
     
@@ -1161,9 +1588,13 @@ function closeCustomProviderModal() {
 
 // 保存自定义服务商
 async function saveCustomProvider() {
-    const displayName = document.getElementById('customProviderName').value.trim();
-    const baseUrl = document.getElementById('customProviderUrl').value.trim();
-    const description = document.getElementById('customProviderDesc').value.trim();
+    const customProviderName = document.getElementById('customProviderName');
+    const customProviderUrl = document.getElementById('customProviderUrl');
+    const customProviderDesc = document.getElementById('customProviderDesc');
+    
+    const displayName = customProviderName ? customProviderName.value.trim() : '';
+    const baseUrl = customProviderUrl ? customProviderUrl.value.trim() : '';
+    const description = customProviderDesc ? customProviderDesc.value.trim() : '';
     
     if (!displayName || !baseUrl) {
         showToast('请填写服务商名称和API地址', 'error');
@@ -1246,10 +1677,21 @@ function openProviderConfigModal() {
 
 // 关闭服务商配置弹窗
 function closeProviderConfigModal() {
-    document.getElementById('providerConfigModal').classList.remove('active');
-    
-    // 恢复导航状态
-    updateNavActive('navKeyManage');
+    const modal = document.getElementById('providerConfigModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    // 恢复到当前页面的导航状态
+    restoreNavState();
+}
+
+// 恢复导航状态到当前页面
+function restoreNavState() {
+    if (currentPage === 'usage') {
+        updateNavActive('navUsage');
+    } else {
+        updateNavActive('navKeyManage');
+    }
 }
 
 // 更新导航激活状态
@@ -1265,11 +1707,22 @@ function updateNavActive(activeId) {
 
 // 切换到密钥管理
 function switchToKeyManage() {
-    document.getElementById('keyManagePage').style.display = 'block';
-    document.getElementById('usagePage').style.display = 'none';
-    document.getElementById('currentPageName').textContent = '密钥管理';
+    const keyManagePage = document.getElementById('keyManagePage');
+    const usagePage = document.getElementById('usagePage');
+    const currentPageName = document.getElementById('currentPageName');
+    
+    // 先更新当前页面状态（必须在关闭弹窗之前）
+    currentPage = 'keys';
+    
+    // 关闭弹窗（会根据 currentPage 恢复导航状态）
     closeProviderConfigModal();
-    // 在 closeProviderConfigModal 之后调用，确保导航状态正确
+    
+    // 切换页面
+    if (keyManagePage) keyManagePage.style.display = 'block';
+    if (usagePage) usagePage.style.display = 'none';
+    if (currentPageName) currentPageName.textContent = '密钥管理';
+    
+    // 设置导航状态
     updateNavActive('navKeyManage');
 }
 
@@ -1281,6 +1734,8 @@ function showComingSoon(featureName) {
 // 渲染服务商配置列表
 async function renderProviderConfigList() {
     const listContainer = document.getElementById('providerConfigList');
+    
+    if (!listContainer) return;
     
     if (Object.keys(providers).length === 0) {
         await loadProviders();
@@ -1335,7 +1790,8 @@ async function renderProviderConfigList() {
     });
     
     listContainer.innerHTML = html;
-    document.getElementById('providerCount').textContent = Object.keys(providers).length;
+    const providerCount = document.getElementById('providerCount');
+    if (providerCount) providerCount.textContent = Object.keys(providers).length;
     lucide.createIcons();
 }
 
@@ -1411,13 +1867,15 @@ async function testApiConnection() {
     const testResultMessage = document.getElementById('testResultMessage');
     
     // 显示测试中状态
-    testBtn.disabled = true;
-    testBtn.classList.add('testing');
-    testResultRow.style.display = 'block';
-    testResultCard.className = 'test-result-card testing';
-    testResultIcon.innerHTML = '<i data-lucide="loader-2"></i>';
-    testResultTitle.textContent = '正在测试连接...';
-    testResultMessage.textContent = '请稍候';
+    if (testBtn) {
+        testBtn.disabled = true;
+        testBtn.classList.add('testing');
+    }
+    if (testResultRow) testResultRow.style.display = 'block';
+    if (testResultCard) testResultCard.className = 'test-result-card testing';
+    if (testResultIcon) testResultIcon.innerHTML = '<i data-lucide="loader-2"></i>';
+    if (testResultTitle) testResultTitle.textContent = '正在测试连接...';
+    if (testResultMessage) testResultMessage.textContent = '请稍候';
     lucide.createIcons();
     
     try {
@@ -1453,14 +1911,16 @@ async function testApiConnection() {
         
     } catch (error) {
         console.error('测试连接错误:', error);
-        testResultCard.className = 'test-result-card error';
-        testResultIcon.innerHTML = '<i data-lucide="x-circle"></i>';
-        testResultTitle.textContent = '测试失败';
-        testResultMessage.textContent = '网络错误，请稍后重试';
+        if (testResultCard) testResultCard.className = 'test-result-card error';
+        if (testResultIcon) testResultIcon.innerHTML = '<i data-lucide="x-circle"></i>';
+        if (testResultTitle) testResultTitle.textContent = '测试失败';
+        if (testResultMessage) testResultMessage.textContent = '网络错误，请稍后重试';
         lucide.createIcons();
     } finally {
-        testBtn.disabled = false;
-        testBtn.classList.remove('testing');
+        if (testBtn) {
+            testBtn.disabled = false;
+            testBtn.classList.remove('testing');
+        }
     }
 }
 
@@ -1472,11 +1932,22 @@ let currentTimeRange = 7;
 
 // 切换到使用统计页面
 function switchToUsage() {
-    document.getElementById('keyManagePage').style.display = 'none';
-    document.getElementById('usagePage').style.display = 'block';
-    document.getElementById('currentPageName').textContent = '使用统计';
+    const keyManagePage = document.getElementById('keyManagePage');
+    const usagePage = document.getElementById('usagePage');
+    const currentPageName = document.getElementById('currentPageName');
+    
+    // 先更新当前页面状态（必须在关闭弹窗之前）
+    currentPage = 'usage';
+    
+    // 关闭弹窗（会根据 currentPage 恢复导航状态）
     closeProviderConfigModal();
-    // 在 closeProviderConfigModal 之后调用，否则会被覆盖
+    
+    // 切换页面
+    if (keyManagePage) keyManagePage.style.display = 'none';
+    if (usagePage) usagePage.style.display = 'block';
+    if (currentPageName) currentPageName.textContent = '使用统计';
+    
+    // 设置导航状态
     updateNavActive('navUsage');
     loadUsageData();
 }
@@ -1500,10 +1971,15 @@ function loadUsageData() {
     const mockData = generateMockUsageData(currentTimeRange);
     
     // 更新统计卡片
-    document.getElementById('totalRequests').textContent = formatNumber(mockData.totalRequests);
-    document.getElementById('totalTokens').textContent = formatNumber(mockData.totalTokens);
-    document.getElementById('activeKeysUsage').textContent = mockData.activeKeys;
-    document.getElementById('avgResponseTime').textContent = mockData.avgResponseTime + 'ms';
+    const totalRequests = document.getElementById('totalRequests');
+    const totalTokens = document.getElementById('totalTokens');
+    const activeKeysUsage = document.getElementById('activeKeysUsage');
+    const avgResponseTime = document.getElementById('avgResponseTime');
+    
+    if (totalRequests) totalRequests.textContent = formatNumber(mockData.totalRequests);
+    if (totalTokens) totalTokens.textContent = formatNumber(mockData.totalTokens);
+    if (activeKeysUsage) activeKeysUsage.textContent = mockData.activeKeys;
+    if (avgResponseTime) avgResponseTime.textContent = mockData.avgResponseTime + 'ms';
     
     // 渲染图表
     renderRequestsChart(mockData.trendData);
@@ -1579,7 +2055,10 @@ function formatNumber(num) {
 
 // 渲染请求趋势图
 function renderRequestsChart(data) {
-    const ctx = document.getElementById('requestsChart').getContext('2d');
+    const chartElement = document.getElementById('requestsChart');
+    if (!chartElement) return;
+    
+    const ctx = chartElement.getContext('2d');
     
     if (requestsChart) {
         requestsChart.destroy();
@@ -1632,7 +2111,10 @@ function renderRequestsChart(data) {
 
 // 渲染服务商分布图
 function renderProviderChart(data) {
-    const ctx = document.getElementById('providerChart').getContext('2d');
+    const chartElement = document.getElementById('providerChart');
+    if (!chartElement) return;
+    
+    const ctx = chartElement.getContext('2d');
     
     if (providerChart) {
         providerChart.destroy();
@@ -1671,6 +2153,8 @@ function renderProviderChart(data) {
 // 渲染使用排行表格
 function renderUsageTable(data) {
     const tbody = document.getElementById('usageTableBody');
+    
+    if (!tbody) return;
     
     if (data.length === 0) {
         tbody.innerHTML = `

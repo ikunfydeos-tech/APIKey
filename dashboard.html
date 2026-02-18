@@ -4,12 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API密钥管理 - 控制台</title>
-    <link rel="stylesheet" href="css/style.css?v=20260217">
-    <link rel="stylesheet" href="css/dashboard.css?v=20260217">
+    <link rel="stylesheet" href="css/style.css?v=20260218">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260218">
+    <style>
+        /* 根据初始页面状态控制显示，避免闪烁 */
+        html[data-initial-page="usage"] #keyManagePage { display: none !important; }
+        html[data-initial-page="usage"] #usagePage { display: block !important; }
+        html[data-initial-page="keys"] #keyManagePage { display: block !important; }
+        html[data-initial-page="keys"] #usagePage { display: none !important; }
+        html[data-initial-page="provider"] #keyManagePage { display: block !important; }
+        html[data-initial-page="provider"] #usagePage { display: none !important; }
+    </style>
     <script src="https://registry.npmmirror.com/lucide/latest/files/dist/umd/lucide.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
+    <!-- 内联脚本：在渲染内容前设置页面初始状态，避免闪烁 -->
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var page = params.get('page');
+            if (page === 'usage') {
+                document.documentElement.setAttribute('data-initial-page', 'usage');
+            } else if (page === 'provider') {
+                document.documentElement.setAttribute('data-initial-page', 'provider');
+            } else {
+                document.documentElement.setAttribute('data-initial-page', 'keys');
+            }
+        })();
+    </script>
     <div class="app-layout">
         <!-- 左侧边栏 -->
         <aside class="sidebar">
@@ -39,13 +62,26 @@
             </nav>
 
             <div class="sidebar-footer">
+                <!-- 升级会员按钮 - 默认显示，付费用户时隐藏 -->
+                <a href="#" class="upgrade-btn" id="upgradeBtn" onclick="openUpgradeModal(event)" style="display: flex;">
+                    <i data-lucide="crown"></i>
+                    <span>升级会员</span>
+                </a>
+                <!-- 会员状态显示 -->
+                <div class="membership-status" id="membershipStatus" style="display: none;">
+                    <div class="membership-badge">
+                        <i data-lucide="crown"></i>
+                        <span id="membershipTier">基础版</span>
+                    </div>
+                    <div class="membership-expire" id="membershipExpire">到期: 2026-03-18</div>
+                </div>
                 <a href="profile.html" class="user-card" title="个人中心">
                     <div class="user-avatar">
                         <i data-lucide="user"></i>
                     </div>
                     <div class="user-info">
-                        <span class="user-name" id="usernameDisplay">用户名</span>
-                        <span class="user-role" id="userRoleDisplay">用户</span>
+                        <span class="user-name" id="usernameDisplay">...</span>
+                        <span class="user-role" id="userRoleDisplay">...</span>
                     </div>
                     <i data-lucide="chevron-right" class="user-arrow"></i>
                 </a>
@@ -100,8 +136,11 @@
                 <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number" id="totalKeys">0</div>
-                            <div class="stat-label">总密钥数</div>
+                            <div class="stat-number">
+                                <span id="totalKeys">0</span>
+                                <span id="keyLimit" class="key-limit" style="display: none;">/<span id="keyLimitValue">2</span></span>
+                            </div>
+                            <div class="stat-label">总密钥数<span id="keyLimitBadge" class="limit-badge" style="display: none;">已满</span></div>
                         </div>
                         <div class="stat-icon blue">
                             <i data-lucide="key"></i>
@@ -510,7 +549,31 @@
     <!-- Toast 通知 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/dashboard.js"></script>
+    <!-- 立即设置导航高亮，避免闪烁 -->
+    <script>
+        (function() {
+            var initialPage = document.documentElement.getAttribute('data-initial-page');
+            var navKeyManage = document.getElementById('navKeyManage');
+            var navUsage = document.getElementById('navUsage');
+            var navProviderConfig = document.getElementById('navProviderConfig');
+            var currentPageName = document.getElementById('currentPageName');
+            
+            // 移除默认的 active
+            if (navKeyManage) navKeyManage.classList.remove('active');
+            
+            // 根据初始页面设置高亮
+            if (initialPage === 'usage') {
+                if (navUsage) navUsage.classList.add('active');
+                if (currentPageName) currentPageName.textContent = '使用统计';
+            } else if (initialPage === 'provider') {
+                if (navProviderConfig) navProviderConfig.classList.add('active');
+            } else {
+                if (navKeyManage) navKeyManage.classList.add('active');
+            }
+        })();
+    </script>
+
+    <script src="js/dashboard.js?v=20260218b"></script>
     <script>
         lucide.createIcons();
     </script>

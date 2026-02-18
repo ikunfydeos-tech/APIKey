@@ -1,6 +1,14 @@
 // 管理后台 JavaScript
 const API_BASE_URL = 'http://localhost:8000';
 
+// XSS 防护：HTML 转义函数
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // 动态管理员 API 前缀（启动时从后端获取）
 let ADMIN_API_PREFIX = null;
 
@@ -419,9 +427,9 @@ function renderUsersTable(users) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${user.id}</td>
-            <td>${user.username}</td>
-            <td>${user.email}</td>
-            <td><span class="role-badge ${user.role}">${getRoleLabel(user.role)}</span></td>
+            <td>${escapeHtml(user.username)}</td>
+            <td>${escapeHtml(user.email)}</td>
+            <td><span class="role-badge ${escapeHtml(user.role)}">${getRoleLabel(user.role)}</span></td>
             <td>${user.key_count}</td>
             <td><span class="status-badge ${user.is_active ? 'active' : 'inactive'}">${user.is_active ? '启用' : '禁用'}</span></td>
             <td>${formatDate(user.created_at)}</td>
@@ -430,7 +438,7 @@ function renderUsersTable(users) {
                     <button class="action-btn" onclick="viewUserDetail(${user.id})" title="查看详情">
                         <i data-lucide="eye"></i>
                     </button>
-                    <button class="action-btn" onclick="toggleUserRole(${user.id}, '${user.role}')" title="切换角色">
+                    <button class="action-btn" onclick="toggleUserRole(${user.id}, '${escapeHtml(user.role)}')" title="切换角色">
                         <i data-lucide="shield"></i>
                     </button>
                     <button class="action-btn ${user.is_active ? 'danger' : 'success'}" onclick="toggleUserStatus(${user.id}, ${user.is_active})" title="${user.is_active ? '禁用' : '启用'}">

@@ -24,11 +24,11 @@
                     <i data-lucide="key"></i>
                     <span>密钥管理</span>
                 </a>
-                <a href="dashboard.html#" class="nav-item" onclick="openProviderConfigModal()">
+                <a href="dashboard.html?page=provider" class="nav-item" id="navProviderConfig">
                     <i data-lucide="server"></i>
                     <span>服务商配置</span>
                 </a>
-                <a href="dashboard.html#" class="nav-item" onclick="switchToUsage()">
+                <a href="dashboard.html?page=usage" class="nav-item" id="navUsage">
                     <i data-lucide="bar-chart-2"></i>
                     <span>使用统计</span>
                 </a>
@@ -39,13 +39,26 @@
             </nav>
 
             <div class="sidebar-footer">
+                <!-- 升级会员按钮 - 默认显示，付费用户时隐藏 -->
+                <a href="#" class="upgrade-btn" id="upgradeBtn" onclick="openUpgradeModal(event)" style="display: flex;">
+                    <i data-lucide="crown"></i>
+                    <span>升级会员</span>
+                </a>
+                <!-- 会员状态显示 -->
+                <div class="membership-status" id="membershipStatus" style="display: none;">
+                    <div class="membership-badge">
+                        <i data-lucide="crown"></i>
+                        <span id="membershipTier">基础版</span>
+                    </div>
+                    <div class="membership-expire" id="membershipExpire">到期: 2026-03-18</div>
+                </div>
                 <div class="user-card active">
                     <div class="user-avatar">
                         <i data-lucide="user"></i>
                     </div>
                     <div class="user-info">
-                        <span class="user-name" id="usernameDisplay">用户名</span>
-                        <span class="user-role" id="userRole">用户</span>
+                        <span class="user-name" id="usernameDisplay">...</span>
+                        <span class="user-role" id="userRole">...</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="handleLogout()">

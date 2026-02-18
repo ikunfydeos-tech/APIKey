@@ -96,6 +96,7 @@ async def log_middleware(request: Request, call_next):
             action = "访问"
             resource_type = "SYSTEM"
             resource_id = None
+            resource_name = "unknown"  # 初始化默认值，避免变量未定义错误
             
             if request.url.path.endswith("/login"):
                 action = "登录"

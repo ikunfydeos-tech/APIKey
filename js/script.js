@@ -17,28 +17,26 @@ document.addEventListener('DOMContentLoaded', function() {
     addKeyboardShortcuts();
 });
 
-// 加载记住的登录凭据
+// 加载记住的登录凭据（仅用户名，不存储密码）
 function loadRememberedCredentials() {
     const savedUsername = localStorage.getItem('rememberedUsername');
-    const savedPassword = localStorage.getItem('rememberedPassword');
     const rememberMe = localStorage.getItem('rememberMe') === 'true';
     
     if (rememberMe && savedUsername) {
         usernameInput.value = savedUsername;
-        passwordInput.value = savedPassword || '';
+        // 安全考虑：不再自动填充密码，用户需要手动输入
         rememberMeCheckbox.checked = true;
     }
 }
 
-// 保存登录凭据
+// 保存登录凭据（仅保存用户名，不保存密码）
 function saveCredentials() {
     if (rememberMeCheckbox.checked) {
         localStorage.setItem('rememberedUsername', usernameInput.value);
-        localStorage.setItem('rememberedPassword', passwordInput.value);
         localStorage.setItem('rememberMe', 'true');
+        // 安全警告：绝不存储���码到 localStorage
     } else {
         localStorage.removeItem('rememberedUsername');
-        localStorage.removeItem('rememberedPassword');
         localStorage.setItem('rememberMe', 'false');
     }
 }
@@ -46,7 +44,6 @@ function saveCredentials() {
 // 删除保存的登录凭据
 function clearSavedCredentials() {
     localStorage.removeItem('rememberedUsername');
-    localStorage.removeItem('rememberedPassword');
     localStorage.setItem('rememberMe', 'false');
     rememberMeCheckbox.checked = false;
 }

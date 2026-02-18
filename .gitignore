@@ -7,26 +7,45 @@ __pycache__/
 env/
 venv/
 .venv/
+ENV/
 *.egg-info/
 dist/
 build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sublime-workspace
+*.sublime-project
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.lnk
 
 # Environment
 .env
-*.env.local
+.env.local
+.env.production
+.env.*.local
+*.env
 
 # Logs
 *.log
+logs/
+*.out
 
 # Database
 *.db
@@ -36,3 +55,19 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
+
+# Docker
+docker-compose.override.yml
+
+# Secrets (never commit these!)
+secrets/
+*.pem
+*.key
+
+# Uploads
+uploads/
+
+# Cache
+.cache/

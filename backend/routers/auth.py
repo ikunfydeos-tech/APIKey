@@ -149,6 +149,15 @@ def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db))
     user.login_attempts = 0
     user.locked_until = None
     user.last_login = datetime.utcnow()
+    
+    # 检查会员状态
+    membership_status = None
+    if user.membership_tier != 'free' and user.membership_expire_at:
+        from membership_service import check_membership_on_login_sync
+        membership_status = check_membership_on_login_sync(user.id, db)
+        # 刷新用户数据（可能已降级）
+        db.refresh(user)
+    
     db.commit()
     
     # Create access token
@@ -162,7 +171,11 @@ def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db))
             email=user.email,
             is_active=user.is_active,
             role=user.role,
-            created_at=user.created_at
+            membership_tier=user.membership_tier or 'free',
+            membership_expire_at=user.membership_expire_at,
+            membership_started_at=user.membership_started_at,
+            created_at=user.created_at,
+            last_login=user.last_login
         )
     )
 

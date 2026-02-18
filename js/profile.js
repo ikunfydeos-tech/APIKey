@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         await loadLoginHistory();
         await loadSessions();
         checkAdminStatus();
+        checkMembershipStatus();
     }
     initEventListeners();
 });
@@ -737,7 +738,7 @@ function formatRelativeTime(dateStr) {
     return formatDate(dateStr);
 }
 
-// Toast 通知
+// Toast 通��
 function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
@@ -753,4 +754,96 @@ function showToast(message, type = 'success') {
         toast.style.animation = 'slideIn 0.3s ease-out reverse';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// 检查会员状态
+async function checkMembershipStatus() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const membershipStatus = document.getElementById('membershipStatus');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/webhook/membership/status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const membership = await response.json();
+            updateMembershipUI(membership);
+        } else {
+            // API 返回错误，默认显示升级按钮
+            if (upgradeBtn) upgradeBtn.style.display = 'flex';
+            if (membershipStatus) membershipStatus.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('获取会员状态失败:', error);
+        // 网络错误等，默认显示升级按钮
+        if (upgradeBtn) upgradeBtn.style.display = 'flex';
+        if (membershipStatus) membershipStatus.style.display = 'none';
+    }
+}
+
+// 更新会员状态UI
+function updateMembershipUI(membership) {
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const membershipStatus = document.getElementById('membershipStatus');
+    const membershipTier = document.getElementById('membershipTier');
+    const membershipExpire = document.getElementById('membershipExpire');
+    
+    if (membership.tier === 'free' || !membership.is_active) {
+        // 免费用户：显示升级按钮
+        if (upgradeBtn) upgradeBtn.style.display = 'flex';
+        if (membershipStatus) membershipStatus.style.display = 'none';
+    } else {
+        // 付费用户：显示会员状态
+        if (upgradeBtn) upgradeBtn.style.display = 'none';
+        if (membershipStatus) membershipStatus.style.display = 'block';
+        
+        // 设置会员等级显示
+        const tierNames = {
+            'basic': '基础版',
+            'pro': '专业版'
+        };
+        if (membershipTier) membershipTier.textContent = tierNames[membership.tier] || membership.tier;
+        
+        // 设置到期时间
+        if (membership.expire_at) {
+            const expireDate = new Date(membership.expire_at);
+            if (membershipExpire) membershipExpire.textContent = `到期: ${expireDate.toLocaleDateString('zh-CN')}`;
+        }
+        
+        // 专业版样式
+        if (membership.tier === 'pro' && membershipStatus) {
+            membershipStatus.classList.add('pro');
+        }
+    }
+}
+
+// 打开升级会员弹窗
+function openUpgradeModal(event) {
+    if (event) event.preventDefault();
+    
+    const userStr = localStorage.getItem('user');
+    let userId = '';
+    if (userStr) {
+        const user = JSON.parse(userStr);
+        userId = user.id;
+    }
+    
+    // 爱发电链接（TODO: 替换为实际的商品链接）
+    const AFDIAN_BASIC_URL = 'https://afdian.net/item/你的基础版商品ID';
+    const AFDIAN_PRO_URL = 'https://afdian.net/item/你的专业版商品ID';
+    
+    // 显示选择弹窗
+    const choice = confirm('请选择套餐:\n\n点击"确定" → 基础版 ¥19/月\n点击"取消" → 专业版 ¥49/月');
+    
+    if (choice) {
+        // 基础版
+        window.open(`${AFDIAN_BASIC_URL}?custom=user_${userId}`, '_blank');
+    } else {
+        // 专业版
+        window.open(`${AFDIAN_PRO_URL}?custom=user_${userId}`, '_blank');
+    }
 }
