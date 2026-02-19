@@ -1,14 +1,15 @@
-# 认证路由 - 强制TOTP注册/登录
+# 重构版认证路由 - 强制TOTP注册
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 from database import get_db
 from models_v2 import User, TOTPConfig, LoginHistory, LogEntry
-from schemas import UserResponse, Token, MessageResponse
+from schemas import UserCreate, UserLogin, UserResponse, Token, MessageResponse
 from auth import (
     verify_password, 
     get_password_hash, 
@@ -16,25 +17,24 @@ from auth import (
     get_current_user
 )
 from totp_utils import generate_totp_secret, verify_totp_code
+from config import settings
 import base64
 
 router = APIRouter(prefix="/api", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
-
 
 # ============ 请求模型 ============
 
 class RegisterStep1Request(BaseModel):
     """注册第一步：基本信息"""
     username: str
+    email: str
     password: str
-
 
 class RegisterStep2Request(BaseModel):
     """注册第二步：TOTP验证"""
     temp_token: str
     totp_code: str
-
 
 class LoginWithTOTPRequest(BaseModel):
     """登录请求（含TOTP）"""
@@ -42,38 +42,17 @@ class LoginWithTOTPRequest(BaseModel):
     password: str
     totp_code: str
 
-
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
-    totp_code: str  # 需要TOTP验证
-
 
 class DeleteAccountRequest(BaseModel):
     password: str
-    totp_code: str  # 需要TOTP验证
 
 
-# ============ 临时token存储 ============
-# 生产环境应使用Redis，这里简化处理
+# ============ 临时token存储（生产环境应使用Redis）===========
+# 内存存储，重启后丢失
 temp_registration_store = {}
-
-
-def is_username_in_temp_store(username: str) -> bool:
-    """检查用户名是否在临时注册存储中（防止重复注册）"""
-    # 先清理过期的临时数据
-    expired_tokens = []
-    for token, data in temp_registration_store.items():
-        if datetime.utcnow() - data["created_at"] > timedelta(minutes=10):
-            expired_tokens.append(token)
-    for token in expired_tokens:
-        del temp_registration_store[token]
-    
-    # 检查用户名是否被占用
-    for data in temp_registration_store.values():
-        if data["username"] == username:
-            return True
-    return False
 
 
 def get_client_ip(request: Request) -> str:
@@ -92,7 +71,7 @@ def get_user_agent(request: Request) -> str:
 def log_user_action(db: Session, user_id: int, username: str, action: str, 
                    ip_address: str, user_agent: str, status: str = "success",
                    resource_type: str = None, resource_id: int = None, 
-                   resource_name: str = None, details: str = None):
+                   resource_name: str = None, details: dict = None):
     """记录用户操作日志"""
     log = LogEntry(
         user_id=user_id,
@@ -104,7 +83,7 @@ def log_user_action(db: Session, user_id: int, username: str, action: str,
         ip_address=ip_address,
         user_agent=user_agent,
         status=status,
-        details=details
+        details=str(details) if details else None
     )
     db.add(log)
     db.commit()
@@ -134,29 +113,18 @@ def register_step1(request: Request, user_data: RegisterStep1Request, db: Sessio
     """
     注册第一步：验证基本信息，生成TOTP密钥
     返回临时token和TOTP二维码
-    注意：用户名此时只预占，不写入数据库，只有完成第二步才真正创建用户
     """
-    # 检查用户名 - 同时检查数据库和临时存储
+    # 检查用户名
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="用户名已被使用")
     
-    if is_username_in_temp_store(user_data.username):
-        raise HTTPException(status_code=400, detail="用户名正在被其他用户注册中，请稍后重试或更换用户名")
+    # 检查邮箱
+    if db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(status_code=400, detail="邮箱已被注册")
     
     # 密码强度验证
-    password = user_data.password
-    if len(password) < 8:
+    if len(user_data.password) < 8:
         raise HTTPException(status_code=400, detail="密码长度至少8位")
-    
-    # 检查是否包含数字、字母、特殊符号中的至少两项
-    import re
-    has_letter = bool(re.search(r'[a-zA-Z]', password))
-    has_digit = bool(re.search(r'[0-9]', password))
-    has_special = bool(re.search(r'[^a-zA-Z0-9]', password))
-    type_count = (1 if has_letter else 0) + (1 if has_digit else 0) + (1 if has_special else 0)
-    
-    if type_count < 2:
-        raise HTTPException(status_code=400, detail="密码必须包含数字、字母、特殊符号中的至少两项")
     
     # 生成TOTP密钥
     secret = generate_totp_secret()
@@ -168,6 +136,7 @@ def register_step1(request: Request, user_data: RegisterStep1Request, db: Sessio
     # 存储临时注册信息
     temp_registration_store[temp_token] = {
         "username": user_data.username,
+        "email": user_data.email,
         "password_hash": get_password_hash(user_data.password),
         "totp_secret": secret,
         "created_at": datetime.utcnow(),
@@ -204,7 +173,6 @@ def register_step1(request: Request, user_data: RegisterStep1Request, db: Sessio
 def register_step2(request: Request, data: RegisterStep2Request, db: Session = Depends(get_db)):
     """
     注册第二步：验证TOTP，完成注册
-    只有在这一步成功后，用户才会被写入数据库
     """
     # 检查临时token
     reg_data = temp_registration_store.get(data.temp_token)
@@ -220,15 +188,10 @@ def register_step2(request: Request, data: RegisterStep2Request, db: Session = D
     if not verify_totp_code(reg_data["totp_secret"], data.totp_code):
         raise HTTPException(status_code=400, detail="TOTP验证码错误")
     
-    # 最终检查：确保用户名在数据库中仍然可用（防止并发注册）
-    if db.query(User).filter(User.username == reg_data["username"]).first():
-        # 清理临时数据
-        del temp_registration_store[data.temp_token]
-        raise HTTPException(status_code=400, detail="用户名已被使用，请重新注册")
-    
     # 创建用户
     new_user = User(
         username=reg_data["username"],
+        email=reg_data["email"],
         password_hash=reg_data["password_hash"],
         is_active=True
     )
@@ -236,7 +199,7 @@ def register_step2(request: Request, data: RegisterStep2Request, db: Session = D
     db.commit()
     db.refresh(new_user)
     
-    # 创建TOTP配置（强制启用）
+    # 创建TOTP配置
     totp_config = TOTPConfig(
         user_id=new_user.id,
         secret=reg_data["totp_secret"],
@@ -249,7 +212,6 @@ def register_step2(request: Request, data: RegisterStep2Request, db: Session = D
     ip = get_client_ip(request)
     ua = get_user_agent(request)
     log_user_action(db, new_user.id, new_user.username, "用户注册", ip, ua)
-    record_login_history(db, new_user.id, ip, ua, "totp", "success")
     
     # 清理临时数据
     del temp_registration_store[data.temp_token]
@@ -262,6 +224,7 @@ def register_step2(request: Request, data: RegisterStep2Request, db: Session = D
         user=UserResponse(
             id=new_user.id,
             username=new_user.username,
+            email=new_user.email,
             is_active=new_user.is_active,
             created_at=new_user.created_at,
             last_login=new_user.last_login
@@ -275,7 +238,7 @@ def register_step2(request: Request, data: RegisterStep2Request, db: Session = D
 @limiter.limit("10/minute")
 def login(request: Request, user_data: LoginWithTOTPRequest, db: Session = Depends(get_db)):
     """
-    登录（需要TOTP验证）
+    登录（需要TOTP）
     """
     ip = get_client_ip(request)
     ua = get_user_agent(request)
@@ -318,7 +281,7 @@ def login(request: Request, user_data: LoginWithTOTPRequest, db: Session = Depen
     totp_config = db.query(TOTPConfig).filter(TOTPConfig.user_id == user.id).first()
     if not totp_config or not totp_config.is_enabled:
         record_login_history(db, user.id, ip, ua, "totp", "failed", "TOTP未启用")
-        raise HTTPException(status_code=400, detail="账户安全设置异常，请联系客服")
+        raise HTTPException(status_code=400, detail="账户安全设置异常，请联系管理员")
     
     if not verify_totp_code(totp_config.secret, user_data.totp_code):
         user.login_attempts = (user.login_attempts or 0) + 1
@@ -344,6 +307,7 @@ def login(request: Request, user_data: LoginWithTOTPRequest, db: Session = Depen
         user=UserResponse(
             id=user.id,
             username=user.username,
+            email=user.email,
             is_active=user.is_active,
             created_at=user.created_at,
             last_login=user.last_login
@@ -355,10 +319,10 @@ def login(request: Request, user_data: LoginWithTOTPRequest, db: Session = Depen
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """获取当前用户信息"""
     return UserResponse(
         id=current_user.id,
         username=current_user.username,
+        email=current_user.email,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         last_login=current_user.last_login
@@ -367,7 +331,6 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.post("/logout", response_model=MessageResponse)
 def logout(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """登出"""
     ip = get_client_ip(request)
     ua = get_user_agent(request)
     log_user_action(db, current_user.id, current_user.username, "用户登出", ip, ua)
@@ -383,42 +346,25 @@ async def change_password(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """修改密码（需要TOTP验证）"""
+    """修改密码"""
     ip = get_client_ip(request)
     ua = get_user_agent(request)
     
-    # 验证TOTP
-    totp_config = db.query(TOTPConfig).filter(TOTPConfig.user_id == current_user.id).first()
-    if not totp_config or not verify_totp_code(totp_config.secret, data.totp_code):
-        raise HTTPException(status_code=400, detail="TOTP验证码错误")
-    
     # 验证当前密码
     if not verify_password(data.current_password, current_user.password_hash):
-        log_user_action(db, current_user.id, current_user.username, "修改密码", ip, ua, "failed", 
-                       details="当前密码错误")
+        log_user_action(db, current_user.id, current_user.username, "修改密码", ip, ua, "failed", details={"error": "当前密码错误"})
         raise HTTPException(status_code=400, detail="当前密码错误")
     
     # 验证新密码强度
-    new_password = data.new_password
-    if len(new_password) < 8:
+    if len(data.new_password) < 8:
         raise HTTPException(status_code=400, detail="密码长度至少8位")
-    
-    # 检查是否包含数字、字母、特殊符号中的至少两项
-    has_letter = bool(re.search(r'[a-zA-Z]', new_password))
-    has_digit = bool(re.search(r'[0-9]', new_password))
-    has_special = bool(re.search(r'[^a-zA-Z0-9]', new_password))
-    type_count = (1 if has_letter else 0) + (1 if has_digit else 0) + (1 if has_special else 0)
-    
-    if type_count < 2:
-        raise HTTPException(status_code=400, detail="密码必须包含数字、字母、特殊符号中的至少两项")
     
     # 更新密码
     current_user.password_hash = get_password_hash(data.new_password)
     current_user.updated_at = datetime.utcnow()
     db.commit()
     
-    log_user_action(db, current_user.id, current_user.username, "修改密码", ip, ua, 
-                   details="密码修改成功")
+    log_user_action(db, current_user.id, current_user.username, "修改密码", ip, ua, details={"message": "密码修改成功"})
     
     return MessageResponse(message="密码修改成功，请重新登录", success=True)
 
@@ -430,19 +376,13 @@ def delete_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """删除账户（需要TOTP验证）"""
+    """删除账户"""
     ip = get_client_ip(request)
     ua = get_user_agent(request)
     
-    # 验证TOTP
-    totp_config = db.query(TOTPConfig).filter(TOTPConfig.user_id == current_user.id).first()
-    if not totp_config or not verify_totp_code(totp_config.secret, data.totp_code):
-        raise HTTPException(status_code=400, detail="TOTP验证码错误")
-    
     # 验证密码
     if not verify_password(data.password, current_user.password_hash):
-        log_user_action(db, current_user.id, current_user.username, "删除账户", ip, ua, "failed",
-                       details="密码错误")
+        log_user_action(db, current_user.id, current_user.username, "删除账户", ip, ua, "failed", details={"error": "密码错误"})
         raise HTTPException(status_code=400, detail="密码错误")
     
     username = current_user.username
@@ -452,7 +392,7 @@ def delete_account(
     db.delete(current_user)
     db.commit()
     
-    # 记录日志（用户已删除）
+    # 记录日志（用户已删除，使用临时记录）
     log = LogEntry(
         user_id=0,
         username=username,
@@ -466,3 +406,100 @@ def delete_account(
     db.commit()
     
     return MessageResponse(message=f"账户 {username} 已永久删除", success=True)
+
+
+# ============ 登录历史和日志查看 ============
+
+@router.get("/auth/login-history")
+def get_login_history(
+    page: int = 1,
+    page_size: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取登录历史"""
+    from sqlalchemy import desc
+    
+    query = db.query(LoginHistory).filter(LoginHistory.user_id == current_user.id)
+    total = query.count()
+    
+    history = query.order_by(desc(LoginHistory.created_at))\
+        .offset((page - 1) * page_size)\
+        .limit(page_size)\
+        .all()
+    
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "history": [
+            {
+                "id": h.id,
+                "ip_address": h.ip_address,
+                "location": h.location,
+                "login_type": h.login_type,
+                "status": h.status,
+                "fail_reason": h.fail_reason,
+                "created_at": h.created_at.isoformat() if h.created_at else None
+            }
+            for h in history
+        ]
+    }
+
+
+@router.get("/auth/logs")
+def get_user_logs(
+    page: int = 1,
+    page_size: int = 20,
+    action: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取用户操作日志"""
+    from sqlalchemy import desc
+    
+    query = db.query(LogEntry).filter(LogEntry.user_id == current_user.id)
+    
+    if action:
+        query = query.filter(LogEntry.action.ilike(f"%{action}%"))
+    
+    total = query.count()
+    
+    logs = query.order_by(desc(LogEntry.created_at))\
+        .offset((page - 1) * page_size)\
+        .limit(page_size)\
+        .all()
+    
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "logs": [
+            {
+                "id": log.id,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_name": log.resource_name,
+                "ip_address": log.ip_address,
+                "status": log.status,
+                "details": log.details,
+                "created_at": log.created_at.isoformat() if log.created_at else None
+            }
+            for log in logs
+        ]
+    }
+
+
+@router.get("/auth/log-actions")
+def get_log_actions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取用户的操作类型列表"""
+    from sqlalchemy import distinct
+    
+    actions = db.query(distinct(LogEntry.action))\
+        .filter(LogEntry.user_id == current_user.id)\
+        .all()
+    
+    return [a[0] for a in actions if a[0]]

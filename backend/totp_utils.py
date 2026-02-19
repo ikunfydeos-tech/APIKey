@@ -1,130 +1,98 @@
-import pyotp
-import qrcode
-from io import BytesIO
+# TOTP工具函数
 import base64
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from models import TOTPConfig, TOTPLog
+import secrets
+from typing import Tuple
 
-def generate_totp_secret():
-    """生成 TOTP 秘钥"""
-    return pyotp.random_base32()
+def generate_totp_secret() -> str:
+    """生成新的TOTP密钥"""
+    # 生成20字节的随机密钥（标准的TOTP密钥长度，避免填充问题）
+    # 20字节 = 160位，Base32编码后正好32字符，无需填充
+    random_bytes = secrets.token_bytes(20)
+    # 使用base32编码（TOTP标准）
+    return base64.b32encode(random_bytes).decode('utf-8').rstrip('=')
 
-def get_totp_uri(username: str, secret: str):
-    """生成 TOTP URI"""
-    return pyotp.totp.TOTP(secret).provisioning_uri(
-        name=username,
-        issuer_name="API密钥管理系统"
-    )
 
-def generate_qr_code_base64(username: str, secret: str):
-    """生成二维码并返回 base64 编码"""
-    uri = get_totp_uri(username, secret)
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(uri)
-    qr.make(fit=True)
+def verify_totp_code(secret: str, code: str, window: int = 1) -> bool:
+    """
+    验证TOTP验证码
     
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = BytesIO()
-    img.save(buffer, format='PNG')
-    img_str = base64.b64encode(buffer.getvalue()).decode()
-    return f"data:image/png;base64,{img_str}"
-
-def verify_totp_code(secret: str, token: str):
-    """验证 TOTP 令牌"""
-    totp = pyotp.TOTP(secret)
-    # 允许 1 个时间窗口的偏差（30秒）
-    return totp.verify(token, valid_window=1)
-
-def log_totp_action(
-    db: Session,
-    user_id: int,
-    username: str,
-    action: str,
-    ip_address: str = None,
-    status: str = "success",
-    error_message: str = None,
-    details: dict = None
-):
-    """记录 TOTP 操作日志"""
+    Args:
+        secret: TOTP密钥（base32编码，可以有或没有填充符）
+        code: 用户输入的6位验证码
+        window: 时间窗口容错（前后各window个时间窗口）
+    
+    Returns:
+        bool: 验证是否通过
+    """
     try:
-        log_entry = TOTPLog(
-            user_id=user_id,
-            username=username,
-            action=action,
-            ip_address=ip_address,
-            status=status,
-            error_message=error_message,
-            details=str(details) if details else None
+        import pyotp
+        # 确保密钥格式正确（Base32 需要填充符）
+        # pyotp 要求密钥长度必须是8的倍数，不足则用 '=' 填充
+        padded_secret = secret
+        if len(secret) % 8 != 0:
+            padded_secret = secret + '=' * (8 - len(secret) % 8)
+        
+        totp = pyotp.TOTP(padded_secret)
+        return totp.verify(code, valid_window=window)
+    except Exception as e:
+        print(f"TOTP验证异常: {e}")
+        return False
+
+
+def generate_qr_code_base64(username: str, secret: str) -> str:
+    """
+    生成TOTP二维码的base64编码
+    
+    Args:
+        username: 用户名
+        secret: TOTP密钥
+    
+    Returns:
+        str: base64编码的PNG图片
+    """
+    try:
+        import qrcode
+        import io
+        
+        # TOTP URI
+        totp_uri = f"otpauth://totp/LLM-API-Manager:{username}?secret={secret}&issuer=LLM-API-Manager"
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
         )
-        db.add(log_entry)
-        db.commit()
-    except Exception as e:
-        print(f"Failed to log TOTP action: {e}")
-
-def enable_totp_for_user(db: Session, user_id: int, secret: str):
-    """为用户启用 TOTP"""
-    try:
-        # 检查是否已有配置
-        existing = db.query(TOTPConfig).filter(TOTPConfig.user_id == user_id).first()
+        qr.add_data(totp_uri)
+        qr.make(fit=True)
         
-        if existing:
-            existing.secret = secret
-            existing.is_enabled = True
-            existing.updated_at = datetime.utcnow()
-        else:
-            config = TOTPConfig(
-                user_id=user_id,
-                secret=secret,
-                is_enabled=True
-            )
-            db.add(config)
-        
-        db.commit()
-        log_totp_action(db, user_id, None, "enable", status="success")
-        return True
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        return base64.b64encode(buffer.getvalue()).decode()
     except Exception as e:
-        log_totp_action(db, user_id, None, "enable", status="failed", error_message=str(e))
-        return False
+        print(f"生成二维码失败: {e}")
+        return ""
 
-def disable_totp_for_user(db: Session, user_id: int):
-    """为用户禁用 TOTP"""
-    try:
-        config = db.query(TOTPConfig).filter(TOTPConfig.user_id == user_id).first()
-        if config:
-            config.is_enabled = False
-            config.updated_at = datetime.utcnow()
-            db.commit()
-            log_totp_action(db, user_id, None, "disable", status="success")
-            return True
-        return False
-    except Exception as e:
-        log_totp_action(db, user_id, None, "disable", status="failed", error_message=str(e))
-        return False
 
-def is_totp_enabled(db: Session, user_id: int):
-    """检查用户是否启用了 TOTP"""
-    config = db.query(TOTPConfig).filter(TOTPConfig.user_id == user_id).first()
-    return config and config.is_enabled
+def get_totp_uri(username: str, secret: str) -> str:
+    """获取TOTP URI（用于手动添加到验证器）"""
+    return f"otpauth://totp/LLM-API-Manager:{username}?secret={secret}&issuer=LLM-API-Manager"
 
-def verify_totp_token(db: Session, user_id: int, token: str):
-    """验证 TOTP 令牌"""
-    try:
-        config = db.query(TOTPConfig).filter(TOTPConfig.user_id == user_id).first()
-        if not config or not config.is_enabled:
-            return False, "TOTP 未启用"
-        
-        # 获取当前用户名
-        from models import User
-        user = db.query(User).filter(User.id == user_id).first()
-        username = user.username if user else None
-        
-        if verify_totp_code(config.secret, token):
-            log_totp_action(db, user_id, username, "verify", status="success")
-            return True, "验证成功"
-        else:
-            log_totp_action(db, user_id, username, "failed", status="failed", error_message="令牌无效")
-            return False, "令牌无效"
-    except Exception as e:
-        log_totp_action(db, user_id, None, "failed", status="failed", error_message=str(e))
-        return False, str(e)
+
+def generate_backup_codes(count: int = 8) -> list:
+    """
+    生成备用验证码
+    
+    Args:
+        count: 生成数量
+    
+    Returns:
+        list: 备用验证码列表
+    """
+    codes = []
+    for _ in range(count):
+        # 生成8位数字
+        code = ''.join([str(secrets.randbelow(10)) for _ in range(8)])
+        codes.append(code)
+    return codes

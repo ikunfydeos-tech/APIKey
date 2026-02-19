@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         await loadTOTPStatus();
         await loadLoginHistory();
         await loadSessions();
-        checkAdminStatus();
         checkMembershipStatus();
     }
     initEventListeners();
@@ -64,10 +63,9 @@ async function loadUserInfo() {
         if (response.ok) {
             const user = await response.json();
             document.getElementById('usernameDisplay').textContent = user.username;
-            document.getElementById('userRole').textContent = user.role === 'admin' ? '管理员' : '用户';
+            document.getElementById('userRole').textContent = '用户';
             document.getElementById('infoUsername').textContent = user.username;
-            document.getElementById('infoEmail').textContent = user.email || '-';
-            document.getElementById('infoRole').textContent = user.role === 'admin' ? '管理员' : '用户';
+            document.getElementById('infoRole').textContent = '用户';
             document.getElementById('infoCreatedAt').textContent = formatDate(user.created_at);
             document.getElementById('infoLastLogin').textContent = user.last_login ? formatDate(user.last_login) : '从未登录';
         }
@@ -83,22 +81,9 @@ async function loadSecurityScore() {
     
     try {
         // 检查各项安全指标
-        const [meRes, totpRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/me`, { headers: getAuthHeaders() }),
+        const [totpRes] = await Promise.all([
             fetch(`${API_BASE_URL}/api/totp/status`, { headers: getAuthHeaders() })
         ]);
-        
-        if (meRes.ok) {
-            const user = await meRes.json();
-            
-            // 检查邮箱是否验证（简化：有邮箱就认为通过）
-            if (user.email) {
-                checks.push({ name: '邮箱已设置', status: 'success' });
-                score += 25;
-            } else {
-                checks.push({ name: '邮箱未设置', status: 'warning' });
-            }
-        }
         
         if (totpRes.ok) {
             const totp = await totpRes.json();
@@ -649,54 +634,6 @@ async function deleteAccount() {
     } catch (error) {
         console.error('删除账户失败:', error);
         showToast('删除失败', 'error');
-    }
-}
-
-// 检查管理员状态
-async function checkAdminStatus() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const user = await response.json();
-            if (user.role === 'admin') {
-                document.getElementById('navAdmin').style.display = 'flex';
-            }
-        }
-    } catch (error) {
-        console.error('检查管理员状态失败:', error);
-    }
-}
-
-// 跳转到管理后台
-async function goToAdmin(event) {
-    event.preventDefault();
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/admin-path`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            window.location.href = `admin.html?path=${data.admin_path}`;
-        } else {
-            showToast('无法访问管理后台', 'error');
-        }
-    } catch (error) {
-        console.error('获取管理员入口失败:', error);
-        showToast('获取管理员入口失败', 'error');
     }
 }
 

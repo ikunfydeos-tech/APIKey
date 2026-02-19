@@ -9,6 +9,11 @@ const notificationContainer = document.getElementById('notificationContainer');
 
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化 Lucide 图标
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
     initLoginForm();
     
     // 检查是否已登录
@@ -185,7 +190,11 @@ function clearFieldError(fieldId) {
 }
 
 function showLoading(show) {
-    loadingOverlay.style.display = show ? 'flex' : 'none';
+    if (show) {
+        loadingOverlay.classList.add('show');
+    } else {
+        loadingOverlay.classList.remove('show');
+    }
 }
 
 function showNotification(message, type = 'info') {

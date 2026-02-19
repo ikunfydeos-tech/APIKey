@@ -1,626 +1,759 @@
-/* 全局变量和基础样式 - ��对比度深色主题 */
+/* ================================
+   LLM API Manager - 登录页样式
+   现代双栏布局设计
+   ================================ */
+
+/* CSS 变量 */
 :root {
-    /* 主色调 - 青绿 + 紫色渐变 */
-    --primary-color: #00d4aa;
-    --primary-dark: #00b894;
-    --primary-light: #55efc4;
-    --accent-color: #6c5ce7;
-    --accent-light: #a29bfe;
+    /* 主色调 */
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    --primary-glow: rgba(99, 102, 241, 0.3);
     
-    /* 背景色 - 深邃蓝黑 */
-    --bg-primary: #0a0e17;
-    --bg-secondary: #111827;
-    --bg-card: rgba(17, 24, 39, 0.85);
+    /* 强调色 */
+    --accent: #06b6d4;
+    --accent-light: #22d3ee;
     
-    /* 文字色 - 高对比度 */
-    --text-primary: #ffffff;
-    --text-secondary: #e2e8f0;
-    --text-muted: #94a3b8;
-    --text-placeholder: #64748b;
+    /* 成功/错误 */
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
     
-    /* 边框和装饰 */
-    --border-color: rgba(255, 255, 255, 0.12);
-    --border-hover: rgba(0, 212, 170, 0.5);
+    /* 背景色 */
+    --bg-dark: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-input: #16162a;
+    --bg-brand: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+    
+    /* 文字色 */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    /* 边框 */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(99, 102, 241, 0.5);
+    --border-focus: var(--primary);
     
     /* 圆角 */
-    --border-radius: 12px;
-    --border-radius-sm: 8px;
-    --border-radius-lg: 16px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
     
     /* 阴影 */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 40px rgba(0, 212, 170, 0.15);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 40px var(--primary-glow);
     
+    /* 过渡 */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+/* 重置样式 */
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+html {
+    font-size: 16px;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #0a0e17 0%, #1a1f35 50%, #0d1424 100%);
+    background: var(--bg-dark);
     color: var(--text-primary);
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow-x: hidden;
-    overflow-y: auto;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* 背景装饰 */
-body::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(0, 212, 170, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(108, 92, 231, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(0, 212, 170, 0.03) 0%, transparent 60%);
-    pointer-events: none;
-}
-
-/* 登录容器 */
-.login-container {
+/* ================================
+   页面布局
+   ================================ */
+.login-page {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: clamp(1rem, 3vw, 2rem);
-    width: 100%;
-    max-width: min(1000px, 95vw);
-    padding: clamp(0.75rem, 2vw, 1.5rem);
-    position: relative;
-    z-index: 10;
+    min-height: 100vh;
 }
 
-/* 登录卡片 */
-.login-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    padding: clamp(1.25rem, 3vw, 2rem);
+/* ================================
+   左侧品牌区域
+   ================================ */
+.brand-section {
+    background: var(--bg-brand);
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
     overflow: hidden;
-    box-shadow: var(--shadow-xl), var(--shadow-glow);
 }
 
-.login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+.brand-content {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
 }
 
-/* 卡片头部 */
-.card-header {
-    text-align: center;
-    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
 }
 
-.logo {
-    width: clamp(45px, 8vw, 58px);
-    height: clamp(45px, 8vw, 58px);
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    border-radius: 50%;
+.logo-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto clamp(0.5rem, 2vw, 0.75rem);
-    box-shadow: var(--shadow-md), 0 0 20px rgba(0, 212, 170, 0.3);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
 }
 
-.logo i {
+.logo-icon i {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.logo i svg {
-    width: clamp(20px, 4vw, 26px);
-    height: clamp(20px, 4vw, 26px);
+.logo-icon i svg {
+    width: 28px;
+    height: 28px;
     color: white;
     stroke: white;
 }
 
-.card-header h1 {
-    color: var(--text-primary);
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
+.logo-text {
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    color: var(--text-primary);
     letter-spacing: -0.5px;
 }
 
-.card-header p {
-    color: var(--text-muted);
-    font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-    font-weight: 400;
+.brand-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text-primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-/* 登录表单 */
-.login-form {
-    margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
-}
-
-.form-group {
-    margin-bottom: clamp(0.875rem, 2vw, 1.25rem);
-}
-
-.form-group label {
-    display: block;
+.brand-subtitle {
+    font-size: 1.125rem;
     color: var(--text-secondary);
-    font-size: clamp(0.75rem, 2vw, 0.8rem);
-    font-weight: 500;
-    margin-bottom: clamp(0.25rem, 1vw, 0.375rem);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-bottom: 3rem;
+    line-height: 1.7;
 }
 
-.input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-wrapper i {
-    position: absolute;
-    left: clamp(0.625rem, 2vw, 0.875rem);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.input-wrapper i svg {
-    width: clamp(16px, 2.5vw, 18px);
-    height: clamp(16px, 2.5vw, 18px);
-    color: var(--primary-color);
-    stroke: var(--primary-color);
-}
-
-.input-wrapper input {
-    width: 100%;
-    padding: clamp(0.5rem, 2vw, 0.65rem) clamp(0.625rem, 2vw, 0.875rem) clamp(0.5rem, 2vw, 0.65rem) clamp(1.75rem, 4vw, 2.25rem);
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    color: var(--text-primary);
-    font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-    transition: var(--transition);
-    outline: none;
-}
-
-.input-wrapper input::placeholder {
-    color: var(--text-placeholder);
-}
-
-.input-wrapper input:focus {
-    border-color: var(--primary-color);
-    background: rgba(0, 0, 0, 0.4);
-    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
-}
-
-/* 输入框错误状态 */
-.form-group.error .input-wrapper input {
-    border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
-    animation: errorShake 0.4s ease-in-out;
-}
-
-@keyframes errorShake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-5px); }
-    40%, 80% { transform: translateX(5px); }
-}
-
-.input-wrapper .toggle-password {
-    position: absolute;
-    right: 1rem;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.input-wrapper .toggle-password svg {
-    width: 18px;
-    height: 18px;
-    stroke: var(--text-muted);
-    transition: var(--transition);
-}
-
-.input-wrapper .toggle-password:hover svg {
-    stroke: var(--primary-color);
-}
-
-/* 表单选项 */
-.form-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
-}
-
-.remember-me {
-    display: flex;
-    align-items: center;
-    gap: clamp(0.25rem, 1vw, 0.375rem);
-    color: var(--text-secondary);
-    font-size: clamp(0.75rem, 2vw, 0.8rem);
-    cursor: pointer;
-}
-
-.remember-me input[type="checkbox"] {
-    width: clamp(14px, 2vw, 16px);
-    height: clamp(14px, 2vw, 16px);
-    accent-color: var(--primary-color);
-}
-
-.forgot-password {
-    color: var(--primary-light);
-    text-decoration: none;
-    font-size: clamp(0.75rem, 2vw, 0.8rem);
-    transition: var(--transition);
-}
-
-.forgot-password:hover {
-    color: var(--primary-color);
-    text-decoration: underline;
-}
-
-/* 登录按钮 */
-.login-button {
-    width: 100%;
-    padding: clamp(0.55rem, 2vw, 0.7rem) clamp(0.625rem, 2vw, 0.875rem);
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    border: none;
-    border-radius: var(--border-radius-sm);
-    color: white;
-    font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(0.25rem, 1vw, 0.375rem);
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--shadow-md), 0 0 20px rgba(0, 212, 170, 0.2);
-}
-
-.login-button i {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.login-button i svg {
-    width: 18px;
-    height: 18px;
-    stroke: white;
-}
-
-.login-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-    transition: left 0.5s;
-}
-
-.login-button:hover::before {
-    left: 100%;
-}
-
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 212, 170, 0.35);
-}
-
-.login-button:active {
-    transform: translateY(0);
-}
-
-/* 登录底部 */
-.login-footer {
-    text-align: center;
-    padding-top: clamp(1rem, 2.5vw, 1.5rem);
-    border-top: 1px solid var(--border-color);
-}
-
-.login-footer p {
-    color: var(--text-secondary);
-    font-size: clamp(0.75rem, 2vw, 0.8rem);
-    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
-}
-
-.register-link {
-    color: var(--primary-light);
-    text-decoration: none;
-    font-weight: 600;
-    transition: var(--transition);
-}
-
-.register-link:hover {
-    color: var(--primary-color);
-    text-decoration: underline;
-}
-
-.divider {
-    position: relative;
-    margin: clamp(0.75rem, 2vw, 1.25rem) 0;
-}
-
-.divider span {
-    background: var(--bg-card);
-    padding: 0.125rem clamp(0.5rem, 2vw, 0.75rem);
-    color: var(--text-muted);
-    font-size: clamp(0.7rem, 2vw, 0.8rem);
-}
-
-.divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--border-color);
-}
-
-.social-login {
-    display: flex;
-    justify-content: center;
-    gap: clamp(0.5rem, 2vw, 0.75rem);
-}
-
-.social-btn {
-    width: clamp(34px, 6vw, 38px);
-    height: clamp(34px, 6vw, 38px);
-    border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.2);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.social-btn i {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.social-btn i svg {
-    width: clamp(16px, 2.5vw, 18px);
-    height: clamp(16px, 2.5vw, 18px);
-    stroke: var(--text-secondary);
-    transition: var(--transition);
-}
-
-.social-btn:hover {
-    border-color: var(--primary-color);
-    background: rgba(0, 212, 170, 0.1);
-    transform: translateY(-2px);
-}
-
-.social-btn:hover i svg {
-    stroke: var(--primary-color);
-}
-
-/* 信息面板 */
-.info-panel {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border-radius: var(--border-radius-lg);
-    padding: clamp(1.25rem, 3vw, 2rem);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-xl), var(--shadow-glow);
-}
-
-.info-content h2 {
-    color: var(--text-primary);
-    font-size: clamp(1.25rem, 3.5vw, 1.5rem);
-    font-weight: 700;
-    margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
-    text-align: center;
-}
-
-.features-list {
-    list-style: none;
+/* 特性列表 */
+.feature-list {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.75rem, 2vw, 1.25rem);
+    gap: 1.5rem;
 }
 
-.features-list li {
+.feature-item {
     display: flex;
     align-items: center;
-    gap: clamp(0.5rem, 2vw, 0.875rem);
-    color: var(--text-secondary);
-    font-size: clamp(0.85rem, 2.5vw, 0.95rem);
-    font-weight: 500;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    transition: var(--transition);
 }
 
-.features-list li i {
-    width: clamp(34px, 6vw, 40px);
-    height: clamp(34px, 6vw, 40px);
-    background: rgba(0, 212, 170, 0.15);
-    border-radius: 50%;
+.feature-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-hover);
+    transform: translateX(8px);
+}
+
+.feature-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
-.features-list li i svg {
-    width: clamp(18px, 2.5vw, 20px);
-    height: clamp(18px, 2.5vw, 20px);
-    stroke: var(--primary-color);
+.feature-icon i svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+    stroke: white;
+}
+
+.feature-text h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.feature-text p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
 }
 
 /* 装饰元素 */
-.decoration-elements {
+.brand-decoration {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    overflow: hidden;
     pointer-events: none;
 }
 
-.circle {
+.deco-circle {
     position: absolute;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(0, 212, 170, 0.1) 0%, transparent 70%);
+    background: linear-gradient(135deg, var(--primary-glow), transparent);
+    opacity: 0.3;
 }
 
-.circle-1 {
-    width: 200px;
-    height: 200px;
+.deco-1 {
+    width: 400px;
+    height: 400px;
     top: -100px;
     right: -100px;
+    animation: float 20s ease-in-out infinite;
 }
 
-.circle-2 {
-    width: 150px;
-    height: 150px;
-    bottom: -75px;
-    left: -75px;
+.deco-2 {
+    width: 300px;
+    height: 300px;
+    bottom: -50px;
+    left: -50px;
+    animation: float 15s ease-in-out infinite reverse;
 }
 
-.circle-3 {
-    width: 100px;
-    height: 100px;
+.deco-3 {
+    width: 200px;
+    height: 200px;
     top: 50%;
-    right: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 10s ease-in-out infinite;
 }
 
-/* 加载动画 */
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(20px, -20px) rotate(5deg); }
+    50% { transform: translate(-10px, 20px) rotate(-5deg); }
+    75% { transform: translate(15px, 10px) rotate(3deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* ================================
+   右侧登录区域
+   ================================ */
+.login-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--bg-dark);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.login-header p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+/* ================================
+   表单样式
+   ================================ */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-group label i svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--primary-light);
+}
+
+.form-group input {
+    width: 100%;
+    height: 48px;
+    padding: 0 1rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+    outline: none;
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-group input:hover {
+    border-color: var(--border-hover);
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* 输入框带图标 */
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon input {
+    padding-right: 3rem;
+}
+
+.icon-btn {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.icon-btn:hover {
+    color: var(--primary-light);
+}
+
+.icon-btn i svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* 输入提示 */
+.input-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.input-hint i svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ================================
+   表单选项
+   ================================ */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+/* 自定义复选框 */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    position: relative;
+}
+
+.checkbox-wrapper input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkbox-wrapper input:checked + .checkmark {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkbox-wrapper input:checked + .checkmark::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.checkbox-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* 忘记密码链接 */
+.forgot-link {
+    font-size: 0.875rem;
+    color: var(--primary-light);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.forgot-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* ================================
+   主按钮
+   ================================ */
+.btn-primary {
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-md), 0 0 20px var(--primary-glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), 0 0 30px var(--primary-glow);
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-primary i svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ================================
+   登录底部
+   ================================ */
+.login-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.login-footer p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.register-link {
+    color: var(--accent-light);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.register-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* ================================
+   加载遮罩
+   ================================ */
 .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(10, 14, 23, 0.95);
-    display: flex;
+    background: rgba(15, 15, 26, 0.95);
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 9999;
 }
 
-.spinner {
-    width: 60px;
-    height: 60px;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-top: 4px solid var(--primary-color);
-    border-radius: 50%;
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.loading-spinner i svg {
+    width: 48px;
+    height: 48px;
+    stroke: var(--primary);
 }
 
-/* 响应式设计 */
-@media (max-width: 900px) {
-    .login-container {
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-content span {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* ================================
+   通知样式
+   ================================ */
+#notificationContainer {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.notification {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(120%);
+    transition: var(--transition);
+    max-width: 360px;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification i svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.notification.success {
+    border-color: var(--success);
+}
+
+.notification.success i svg {
+    stroke: var(--success);
+}
+
+.notification.error {
+    border-color: var(--error);
+}
+
+.notification.error i svg {
+    stroke: var(--error);
+}
+
+.notification.info {
+    border-color: var(--primary);
+}
+
+.notification.info i svg {
+    stroke: var(--primary);
+}
+
+.notification span {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+/* ================================
+   错误状态
+   ================================ */
+.form-group.error input {
+    border-color: var(--error);
+    background: rgba(239, 68, 68, 0.05);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.error-message {
+    font-size: 0.75rem;
+    color: var(--error);
+    margin-top: 0.25rem;
+}
+
+/* ================================
+   响应式设计
+   ================================ */
+@media (max-width: 1024px) {
+    .login-page {
         grid-template-columns: 1fr;
-        gap: clamp(0.75rem, 2vw, 1.5rem);
     }
     
-    .info-panel {
+    .brand-section {
         display: none;
     }
     
+    .login-section {
+        min-height: 100vh;
+        padding: 1.5rem;
+    }
+    
     .login-card {
-        padding: clamp(1rem, 4vw, 1.75rem);
-        max-width: 480px;
-        margin: 0 auto;
+        max-width: 100%;
+        padding: 2rem;
     }
 }
 
 @media (max-width: 480px) {
-    .login-container {
-        padding: 0.5rem;
+    .login-section {
+        padding: 1rem;
     }
     
     .login-card {
-        padding: clamp(0.875rem, 3vw, 1.25rem);
-        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
     }
     
-    .card-header h1 {
-        font-size: clamp(1.1rem, 5vw, 1.4rem);
+    .login-header h2 {
+        font-size: 1.5rem;
     }
     
-    .login-button {
-        padding: clamp(0.5rem, 2vw, 0.625rem) clamp(0.75rem, 2vw, 1rem);
+    .brand-title {
+        font-size: 2rem;
+    }
+    
+    .btn-primary {
+        height: 48px;
     }
     
     .form-options {
         flex-direction: column;
-        gap: 0.5rem;
         align-items: flex-start;
+        gap: 0.75rem;
     }
 }
 
-/* 视口高度自适应 - 确保在小屏幕上内容可见 */
+/* 小屏幕高度适配 */
 @media (max-height: 700px) {
-    body {
+    .login-section {
         align-items: flex-start;
-        padding-top: 1rem;
-        overflow-y: auto;
+        padding-top: 2rem;
     }
     
-    .login-container {
-        margin: auto 0;
+    .login-card {
+        padding: 1.5rem;
     }
     
-    .card-header {
-        margin-bottom: 1rem;
-    }
-    
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .form-options {
-        margin-bottom: 1.25rem;
-    }
-    
-    .login-footer {
-        padding-top: 1.25rem;
+    .login-form {
+        gap: 1rem;
     }
 }

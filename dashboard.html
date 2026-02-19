@@ -12,8 +12,10 @@
         html[data-initial-page="usage"] #usagePage { display: block !important; }
         html[data-initial-page="keys"] #keyManagePage { display: block !important; }
         html[data-initial-page="keys"] #usagePage { display: none !important; }
-        html[data-initial-page="provider"] #keyManagePage { display: block !important; }
-        html[data-initial-page="provider"] #usagePage { display: none !important; }
+        html[data-initial-page="logs"] #keyManagePage { display: none !important; }
+        html[data-initial-page="logs"] #logsPage { display: block !important; }
+        html[data-initial-page="security"] #keyManagePage { display: none !important; }
+        html[data-initial-page="security"] #securityPage { display: block !important; }
     </style>
     <script src="https://registry.npmmirror.com/lucide/latest/files/dist/umd/lucide.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -24,10 +26,9 @@
         (function() {
             var params = new URLSearchParams(window.location.search);
             var page = params.get('page');
-            if (page === 'usage') {
-                document.documentElement.setAttribute('data-initial-page', 'usage');
-            } else if (page === 'provider') {
-                document.documentElement.setAttribute('data-initial-page', 'provider');
+            var validPages = ['usage', 'logs', 'security'];
+            if (validPages.includes(page)) {
+                document.documentElement.setAttribute('data-initial-page', page);
             } else {
                 document.documentElement.setAttribute('data-initial-page', 'keys');
             }
@@ -47,17 +48,17 @@
                     <i data-lucide="key"></i>
                     <span>密钥管理</span>
                 </a>
-                <a href="#" class="nav-item" id="navProviderConfig" onclick="openProviderConfigModal()">
-                    <i data-lucide="server"></i>
-                    <span>服务商配置</span>
-                </a>
                 <a href="#" class="nav-item" id="navUsage" onclick="switchToUsage()">
                     <i data-lucide="bar-chart-2"></i>
                     <span>使用统计</span>
                 </a>
-                <a href="#" class="nav-item admin-nav" id="navAdmin" style="display: none;" onclick="goToAdmin(event)">
+                <a href="#" class="nav-item" id="navLogs" onclick="switchToLogs()">
+                    <i data-lucide="file-text"></i>
+                    <span>操作日志</span>
+                </a>
+                <a href="#" class="nav-item" id="navSecurity" onclick="switchToSecurity()">
                     <i data-lucide="shield"></i>
-                    <span>管理后台</span>
+                    <span>安全中心</span>
                 </a>
             </nav>
 
@@ -68,7 +69,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="usernameDisplay">...</span>
-                        <span class="user-role" id="userRoleDisplay">...</span>
+                        <span class="user-role" id="userRoleDisplay">用户</span>
                     </div>
                     <i data-lucide="chevron-right" class="user-arrow"></i>
                 </a>
@@ -97,9 +98,6 @@
                     <button class="topbar-btn" id="refreshBtn" title="刷新" onclick="refreshData()">
                         <i data-lucide="refresh-cw"></i>
                     </button>
-                    <button class="topbar-btn" title="通知">
-                        <i data-lucide="bell"></i>
-                    </button>
                 </div>
             </header>
 
@@ -123,11 +121,8 @@
                 <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number">
-                                <span id="totalKeys">0</span>
-                                <span id="keyLimit" class="key-limit" style="display: none;">/<span id="keyLimitValue">∞</span></span>
-                            </div>
-                            <div class="stat-label">总密钥数<span id="keyLimitBadge" class="limit-badge" style="display: none;">已满</span></div>
+                            <div class="stat-number" id="totalKeys">0</div>
+                            <div class="stat-label">总密钥数</div>
                         </div>
                         <div class="stat-icon blue">
                             <i data-lucide="key"></i>
@@ -153,11 +148,11 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number" id="inactiveKeys">0</div>
-                            <div class="stat-label">未激活</div>
+                            <div class="stat-number" id="expiredKeys">0</div>
+                            <div class="stat-label">已过期</div>
                         </div>
                         <div class="stat-icon orange">
-                            <i data-lucide="pause-circle"></i>
+                            <i data-lucide="clock"></i>
                         </div>
                     </div>
                 </div>
@@ -176,6 +171,7 @@
                                     <option value="all">全部状态</option>
                                     <option value="active">活跃</option>
                                     <option value="inactive">未激活</option>
+                                    <option value="expired">已过期</option>
                                 </select>
                             </div>
                         </div>
@@ -190,7 +186,7 @@
                                     <th>模型</th>
                                     <th>密钥预览</th>
                                     <th>状态</th>
-                                    <th>创建时间</th>
+                                    <th>过期时间</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
@@ -247,20 +243,20 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number" id="activeKeysUsage">0</div>
-                            <div class="stat-label">活跃密钥</div>
+                            <div class="stat-number" id="totalCost">$0</div>
+                            <div class="stat-label">总成本</div>
                         </div>
                         <div class="stat-icon purple">
-                            <i data-lucide="key"></i>
+                            <i data-lucide="dollar-sign"></i>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-content">
-                            <div class="stat-number" id="avgResponseTime">0ms</div>
-                            <div class="stat-label">平均响应</div>
+                            <div class="stat-number" id="activeKeysUsage">0</div>
+                            <div class="stat-label">活跃密钥</div>
                         </div>
                         <div class="stat-icon orange">
-                            <i data-lucide="clock"></i>
+                            <i data-lucide="key"></i>
                         </div>
                     </div>
                 </div>
@@ -269,17 +265,17 @@
                 <div class="charts-row">
                     <div class="chart-card">
                         <div class="chart-header">
-                            <h3>请求趋势</h3>
-                            <span class="chart-subtitle">近 7 天请求数变化</span>
+                            <h3>Token使用趋势</h3>
+                            <span class="chart-subtitle">每日消耗统计</span>
                         </div>
                         <div class="chart-container">
-                            <canvas id="requestsChart"></canvas>
+                            <canvas id="tokenChart"></canvas>
                         </div>
                     </div>
                     <div class="chart-card">
                         <div class="chart-header">
                             <h3>服务商分布</h3>
-                            <span class="chart-subtitle">按请求数统计</span>
+                            <span class="chart-subtitle">按Token消耗统计</span>
                         </div>
                         <div class="chart-container chart-pie">
                             <canvas id="providerChart"></canvas>
@@ -287,24 +283,24 @@
                     </div>
                 </div>
 
-                <!-- 密钥使用排行 -->
+                <!-- 模型使用排行 -->
                 <div class="table-section">
                     <div class="section-header">
-                        <h2>密钥使用排行</h2>
-                        <span class="section-subtitle">按请求数排序</span>
+                        <h2>模型使用排行</h2>
+                        <span class="section-subtitle">按Token消耗排序</span>
                     </div>
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>密钥名称</th>
+                                    <th>模型</th>
                                     <th>服务商</th>
                                     <th>请求数</th>
                                     <th>Token 消耗</th>
-                                    <th>最后使用</th>
+                                    <th>成本</th>
                                 </tr>
                             </thead>
-                            <tbody id="usageTableBody">
+                            <tbody id="modelUsageTableBody">
                                 <!-- 数据将通过JS动态生成 -->
                             </tbody>
                         </table>
@@ -312,6 +308,192 @@
                 </div>
                 </div>
                 <!-- /使用统计页面 -->
+
+                <!-- 操作日志页面 -->
+                <div id="logsPage" style="display: none;">
+                <div class="page-title">
+                    <div class="title-info">
+                        <h1>操作日志</h1>
+                        <p>查看您的账户操作记录</p>
+                    </div>
+                </div>
+
+                <!-- 筛选区 -->
+                <div class="logs-filter">
+                    <div class="filter-group">
+                        <label>操作类型</label>
+                        <select id="logActionFilter" onchange="filterLogs()">
+                            <option value="">全部操作</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>状态</label>
+                        <select id="logStatusFilter" onchange="filterLogs()">
+                            <option value="">全部状态</option>
+                            <option value="success">成功</option>
+                            <option value="failed">失败</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 日志表格 -->
+                <div class="table-section">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                    <th>资源</th>
+                                    <th>IP地址</th>
+                                    <th>状态</th>
+                                    <th>详情</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 分页 -->
+                    <div class="pagination" id="logsPagination">
+                        <button class="page-btn" onclick="prevLogsPage()" id="logsPrevBtn" disabled>上一页</button>
+                        <span class="page-info">第 <span id="logsCurrentPage">1</span> 页</span>
+                        <button class="page-btn" onclick="nextLogsPage()" id="logsNextBtn">下一页</button>
+                    </div>
+                </div>
+                </div>
+                <!-- /操作日志页面 -->
+
+                <!-- 安全中心页面 -->
+                <div id="securityPage" style="display: none;">
+                <div class="page-title">
+                    <div class="title-info">
+                        <h1>安全中心</h1>
+                        <p>管理您的账户安全设置</p>
+                    </div>
+                </div>
+
+                <!-- TOTP设置卡片 -->
+                <div class="security-section">
+                    <div class="security-card">
+                        <div class="security-header">
+                            <div class="security-icon totp">
+                                <i data-lucide="smartphone"></i>
+                            </div>
+                            <div class="security-info">
+                                <h3>双重认证 (TOTP)</h3>
+                                <p>使用验证器应用进行两步验证</p>
+                            </div>
+                            <div class="security-status">
+                                <span class="status-badge enabled" id="totpStatus">已启用</span>
+                            </div>
+                        </div>
+                        <div class="security-actions">
+                            <button class="btn-secondary" onclick="showRegenerateTOTP()">
+                                <i data-lucide="refresh-cw"></i>
+                                <span>重新生成密钥</span>
+                            </button>
+                            <button class="btn-secondary" onclick="showBackupCodes()">
+                                <i data-lucide="key"></i>
+                                <span>获取备用码</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 登录历史卡片 -->
+                <div class="security-section">
+                    <h2>登录历史</h2>
+                    <p class="section-desc">查看最近的登录记录，确保账户安全</p>
+                    
+                    <div class="table-section">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>IP地址</th>
+                                        <th>设备</th>
+                                        <th>类型</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="loginHistoryBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="loginHistoryPagination">
+                            <button class="page-btn" onclick="prevLoginPage()" id="loginPrevBtn" disabled>上一页</button>
+                            <span class="page-info">第 <span id="loginCurrentPage">1</span> 页</span>
+                            <button class="page-btn" onclick="nextLoginPage()" id="loginNextBtn">下一页</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密钥余额卡片 -->
+                <div class="security-section">
+                    <h2>密钥余额</h2>
+                    <p class="section-desc">查看各API密钥的余额和使用情况</p>
+                    
+                    <div class="balance-cards" id="balanceCards">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 续费记录卡片 -->
+                <div class="security-section">
+                    <h2>续费记录</h2>
+                    <p class="section-desc">查看您的续费历史</p>
+                    
+                    <div class="table-section">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>密钥</th>
+                                        <th>金额</th>
+                                        <th>有效期</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="renewalsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 危险操作区 -->
+                <div class="security-section danger-zone">
+                    <h2>危险操作</h2>
+                    <p class="section-desc">以下操作不可逆，请谨慎操作</p>
+                    
+                    <div class="danger-actions">
+                        <div class="danger-item">
+                            <div class="danger-info">
+                                <h4>修改密码</h4>
+                                <p>更新您的登录密码</p>
+                            </div>
+                            <button class="btn-danger" onclick="showChangePassword()">
+                                <i data-lucide="lock"></i>
+                                <span>修改密码</span>
+                            </button>
+                        </div>
+                        <div class="danger-item">
+                            <div class="danger-info">
+                                <h4>删除账户</h4>
+                                <p>永久删除您的账户和所有数据</p>
+                            </div>
+                            <button class="btn-danger" onclick="showDeleteAccount()">
+                                <i data-lucide="trash-2"></i>
+                                <span>删除账户</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <!-- /安全中心页面 -->
             </div>
         </main>
     </div>
@@ -346,36 +528,6 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-group" id="modelInputGroup" style="display: none;">
-                        <label for="customModelInput">模型ID <span class="hint-text">（手动输入）</span></label>
-                        <div class="input-wrapper custom-model-input">
-                            <i data-lucide="edit-3"></i>
-                            <input type="text" id="customModelInput" placeholder="如: gpt-4o, claude-3-opus">
-                            <button type="button" class="switch-select-btn" onclick="switchToModelSelect()" title="切换到下拉选择">
-                                <i data-lucide="list"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row model-info-row" id="modelInfoRow" style="display: none;">
-                    <div class="model-info-card" id="modelInfoCard">
-                        <div class="model-info-header">
-                            <span class="model-info-name" id="modelInfoName">-</span>
-                            <span class="model-info-id" id="modelInfoId">-</span>
-                        </div>
-                        <div class="model-info-details">
-                            <div class="model-info-item">
-                                <i data-lucide="file-text"></i>
-                                <span>上下文窗口：</span>
-                                <strong id="modelInfoContext">-</strong>
-                            </div>
-                            <div class="model-info-item">
-                                <i data-lucide="tag"></i>
-                                <span>分类：</span>
-                                <strong id="modelInfoCategory">-</strong>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -400,10 +552,6 @@
                             <button type="button" class="btn-test-connection" id="testConnectionBtn" onclick="testApiConnection()">
                                 测试连接
                             </button>
-                            <span class="test-hint" id="testHint" style="display: none;">
-                                <i data-lucide="info"></i>
-                                自定义服务商暂不支持测试
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -429,6 +577,52 @@
                     <button type="submit" class="btn-primary">
                         <i data-lucide="save"></i>
                         <span>保存</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 续费弹窗 -->
+    <div class="modal-overlay" id="renewModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>续费密钥</h2>
+                <button class="modal-close" onclick="closeRenewModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="renewForm" onsubmit="event.preventDefault(); submitRenewal();">
+                <input type="hidden" id="renewKeyId">
+                <div class="modal-body">
+                    <p class="renew-info">为密钥 <strong id="renewKeyName"></strong> 续费</p>
+                    
+                    <div class="form-group">
+                        <label for="renewAmount">续费金额</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="dollar-sign"></i>
+                            <input type="number" id="renewAmount" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="renewDays">有效期（天）</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="calendar"></i>
+                            <input type="number" id="renewDays" min="1" placeholder="30" value="30">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="renewNote">备注</label>
+                        <textarea id="renewNote" placeholder="续费备注（可选）" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeRenewModal()">取消</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-lucide="check"></i>
+                        <span>确认续费</span>
                     </button>
                 </div>
             </form>
@@ -461,75 +655,54 @@
         </div>
     </div>
 
-    <!-- 自定义服务商弹窗 -->
-    <div class="modal-overlay" id="customProviderModal">
-        <div class="modal">
+    <!-- 修改密码弹窗 -->
+    <div class="modal-overlay" id="changePasswordModal">
+        <div class="modal modal-sm">
             <div class="modal-header">
-                <h2>添加自定义服务商</h2>
-                <button class="modal-close" onclick="closeCustomProviderModal()">
+                <h2>修改密码</h2>
+                <button class="modal-close" onclick="closeChangePasswordModal()">
                     <i data-lucide="x"></i>
                 </button>
             </div>
-            <form id="customProviderForm" class="modal-form" onsubmit="event.preventDefault(); saveCustomProvider();">
-                <div class="form-row">
+            <form id="changePasswordForm" onsubmit="event.preventDefault(); submitChangePassword();">
+                <div class="modal-body">
                     <div class="form-group">
-                        <label for="customProviderName">服务商名称 <span class="required">*</span></label>
+                        <label for="currentPassword">当前密码</label>
                         <div class="input-wrapper">
-                            <i data-lucide="server"></i>
-                            <input type="text" id="customProviderName" placeholder="如: Groq、Cohere" required>
+                            <i data-lucide="lock"></i>
+                            <input type="password" id="currentPassword" required placeholder="输入当前密码">
                         </div>
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
-                        <label for="customProviderUrl">API地址 <span class="required">*</span></label>
+                        <label for="newPassword">新密码</label>
                         <div class="input-wrapper">
-                            <i data-lucide="link"></i>
-                            <input type="url" id="customProviderUrl" placeholder="https://api.example.com/v1" required>
+                            <i data-lucide="lock"></i>
+                            <input type="password" id="newPassword" required placeholder="至少8位">
                         </div>
-                        <span class="form-hint">OpenAI兼容格式的API基础地址</span>
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
-                        <label for="customProviderDesc">描述</label>
-                        <div class="input-wrapper textarea-wrapper">
-                            <textarea id="customProviderDesc" placeholder="服务商描述（可选）" rows="2"></textarea>
+                        <label for="confirmNewPassword">确认新密码</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="lock"></i>
+                            <input type="password" id="confirmNewPassword" required placeholder="再次输入新密码">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="totpForPassword">TOTP验证码</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="shield-check"></i>
+                            <input type="text" id="totpForPassword" maxlength="6" required placeholder="6位验证码">
                         </div>
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeCustomProviderModal()">取消</button>
+                    <button type="button" class="btn-secondary" onclick="closeChangePasswordModal()">取消</button>
                     <button type="submit" class="btn-primary">
-                        <i data-lucide="plus"></i>
-                        <span>添加</span>
+                        <i data-lucide="check"></i>
+                        <span>确认修改</span>
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- 服务商配置弹窗 -->
-    <div class="modal-overlay" id="providerConfigModal">
-        <div class="modal modal-lg">
-            <div class="modal-header">
-                <h2>服务商配置</h2>
-                <button class="modal-close" onclick="closeProviderConfigModal()">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-            <div class="modal-body provider-config-body">
-                <div class="provider-list-header">
-                    <span>共 <strong id="providerCount">0</strong> 个服务商</span>
-                    <button class="btn-add-provider" onclick="closeProviderConfigModal(); setTimeout(() => openCustomProviderModal(), 100);">
-                        <i data-lucide="plus"></i>
-                        <span>添加服务商</span>
-                    </button>
-                </div>
-                <div class="provider-list" id="providerConfigList">
-                    <!-- 服务商列表将通过 JS 动态生成 -->
-                </div>
-            </div>
         </div>
     </div>
 
@@ -540,27 +713,38 @@
     <script>
         (function() {
             var initialPage = document.documentElement.getAttribute('data-initial-page');
-            var navKeyManage = document.getElementById('navKeyManage');
-            var navUsage = document.getElementById('navUsage');
-            var navProviderConfig = document.getElementById('navProviderConfig');
+            var navItems = {
+                'keys': 'navKeyManage',
+                'usage': 'navUsage',
+                'logs': 'navLogs',
+                'security': 'navSecurity'
+            };
+            var pageNames = {
+                'keys': '密钥管理',
+                'usage': '使用统计',
+                'logs': '操作日志',
+                'security': '安全中心'
+            };
+            
+            // 移除所有 active
+            Object.values(navItems).forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.classList.remove('active');
+            });
+            
+            // 设置当前页面高亮
+            var navId = navItems[initialPage] || 'navKeyManage';
+            var navEl = document.getElementById(navId);
+            if (navEl) navEl.classList.add('active');
+            
             var currentPageName = document.getElementById('currentPageName');
-            
-            // 移除默认的 active
-            if (navKeyManage) navKeyManage.classList.remove('active');
-            
-            // 根据初始页面设置高亮
-            if (initialPage === 'usage') {
-                if (navUsage) navUsage.classList.add('active');
-                if (currentPageName) currentPageName.textContent = '使用统计';
-            } else if (initialPage === 'provider') {
-                if (navProviderConfig) navProviderConfig.classList.add('active');
-            } else {
-                if (navKeyManage) navKeyManage.classList.add('active');
+            if (currentPageName) {
+                currentPageName.textContent = pageNames[initialPage] || '密钥管理';
             }
         })();
     </script>
 
-    <script src="js/dashboard.js?v=20260218b"></script>
+    <script src="js/dashboard.js?v=20260218c"></script>
     <script>
         lucide.createIcons();
     </script>

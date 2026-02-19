@@ -32,9 +32,13 @@
                     <i data-lucide="bar-chart-2"></i>
                     <span>使用统计</span>
                 </a>
-                <a href="#" class="nav-item admin-nav" id="navAdmin" style="display: none;" onclick="goToAdmin(event)">
+                <a href="dashboard.html?page=logs" class="nav-item" id="navLogs">
+                    <i data-lucide="file-text"></i>
+                    <span>操作日志</span>
+                </a>
+                <a href="dashboard.html?page=security" class="nav-item" id="navSecurity">
                     <i data-lucide="shield"></i>
-                    <span>管理后台</span>
+                    <span>安全中心</span>
                 </a>
             </nav>
 
@@ -127,10 +131,6 @@
                             <div class="info-item">
                                 <span class="info-label">用户名</span>
                                 <span class="info-value" id="infoUsername">-</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">邮箱</span>
-                                <span class="info-value" id="infoEmail">-</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">角色</span>

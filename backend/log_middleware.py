@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import Request, HTTPException, status
 from routers.auth import get_current_user
-from models import LogEntry
+from models_v2 import LogEntry
 import json
 from pathlib import Path
 

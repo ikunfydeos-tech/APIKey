@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - LLM API Manager</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%236366f1' rx='20' width='100' height='100'/><text x='50' y='70' font-size='50' text-anchor='middle' fill='white'>🔐</text></svg>">
+    <link rel="stylesheet" href="css/register.css">
+    <link rel="stylesheet" href="css/fonts.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="register-page">
+        <!-- 左侧品牌区域 -->
+        <div class="brand-section">
+            <div class="brand-content">
+                <div class="brand-logo">
+                    <div class="logo-icon">
+                        <i data-lucide="key-round"></i>
+                    </div>
+                    <span class="logo-text">LLM API Manager</span>
+                </div>
+                
+                <h1 class="brand-title">开始管理您的<br>AI API 密钥</h1>
+                <p class="brand-subtitle">安全、便捷地管理多个大语言模型服务商的 API 密钥</p>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="shield-check"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>双重认证保护</h4>
+                            <p>TOTP 动态验证码</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="database"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>本地数据存储</h4>
+                            <p>数据掌握在自己手中</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="activity"></i>
+                        </div>
+                        <div class="feature-text">
+                            <h4>使用统计分析</h4>
+                            <p>追踪 API 调用情况</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 装饰元素 -->
+            <div class="brand-decoration">
+                <div class="deco-circle deco-1"></div>
+                <div class="deco-circle deco-2"></div>
+                <div class="deco-circle deco-3"></div>
+            </div>
+        </div>
+
+        <!-- 右侧注册区域 -->
+        <div class="register-section">
+            <div class="register-card">
+                <!-- 步骤指示器 -->
+                <div class="step-indicator">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">基本信息</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">安全设置</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">完成</div>
+                    </div>
+                </div>
+
+                <!-- 步骤1：基本信息 -->
+                <div class="step-content" id="step1">
+                    <div class="form-header">
+                        <h2>创建账户</h2>
+                        <p>填写以下信息开始注册</p>
+                    </div>
+
+                    <form id="registerFormStep1" class="register-form">
+                        <div class="form-group">
+                            <label for="username">
+                                <i data-lucide="user"></i>
+                                <span>用户名</span>
+                            </label>
+                            <input type="text" id="username" name="username" required 
+                                   placeholder="请输入用户名（3-20个字符）" autocomplete="username">
+                            <span class="input-hint">用户名只能包含字母、数字、下划线和连字符</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">
+                                <i data-lucide="lock"></i>
+                                <span>密码</span>
+                            </label>
+                            <div class="input-with-icon">
+                                <input type="password" id="password" name="password" required 
+                                       placeholder="请输入密码（至少8位）" autocomplete="new-password">
+                                <button type="button" class="icon-btn toggle-password" onclick="togglePassword('password')">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <span class="input-hint" id="passwordHint">密码需8位以上，包含数字、字母、特殊符号中的至少两项</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <i data-lucide="lock"></i>
+                                <span>确认密码</span>
+                            </label>
+                            <div class="input-with-icon">
+                                <input type="password" id="confirmPassword" name="confirmPassword" required 
+                                       placeholder="请再次输入密码" autocomplete="new-password">
+                                <button type="button" class="icon-btn toggle-password" onclick="togglePassword('confirmPassword')">
+                                    <i data-lucide="eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="agreeTerms" required>
+                                <span class="checkmark"></span>
+                                <span class="checkbox-label">我已阅读并同意 <a href="terms.html" target="_blank">服务条款</a></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            <span>下一步</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 步骤2：TOTP设置 -->
+                <div class="step-content hidden" id="step2">
+                    <div class="form-header">
+                        <h2>设置双重认证</h2>
+                        <p>为了您的账户安全，请完成双重认证设置</p>
+                    </div>
+
+                    <div class="totp-setup">
+                        <div class="totp-instructions">
+                            <div class="instruction-icon">
+                                <i data-lucide="shield"></i>
+                            </div>
+                            <h3>设置步骤</h3>
+                            <ol>
+                                <li>下载 Authenticator 应用（如 Google Authenticator）</li>
+                                <li>扫描下方二维码或手动输入密钥</li>
+                                <li>输入应用生成的6位验证码</li>
+                            </ol>
+                        </div>
+
+                        <div class="totp-qr-section">
+                            <div class="qr-code-container">
+                                <img id="totpQRCode" src="" alt="TOTP二维码">
+                                <div class="qr-loading" id="qrLoading">
+                                    <i data-lucide="loader-2"></i>
+                                    <span>生成中...</span>
+                                </div>
+                            </div>
+                            <div class="totp-secret">
+                                <label>密钥（手动输入）</label>
+                                <div class="secret-code">
+                                    <code id="totpSecret"></code>
+                                    <button type="button" onclick="copySecret()" class="copy-btn">
+                                        <i data-lucide="copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="registerFormStep2" class="register-form">
+                            <div class="form-group">
+                                <label for="totpCode">
+                                    <i data-lucide="shield-check"></i>
+                                    <span>验证码</span>
+                                </label>
+                                <input type="text" id="totpCode" name="totpCode" required 
+                                       placeholder="请输入6位验证码" maxlength="6" pattern="\d{6}">
+                                <span class="input-hint">
+                                    <i data-lucide="info"></i>
+                                    打开 Authenticator 应用查看验证码
+                                </span>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="goToStep(1)">
+                                    <i data-lucide="arrow-left"></i>
+                                    <span>返回</span>
+                                </button>
+                                <button type="submit" class="btn-primary">
+                                    <span>完成注册</span>
+                                    <i data-lucide="check"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 步骤3：完成 -->
+                <div class="step-content hidden" id="step3">
+                    <div class="success-content">
+                        <div class="success-icon">
+                            <i data-lucide="check-circle"></i>
+                        </div>
+                        <h2>注册成功！</h2>
+                        <p>您的账户已创建完成，正在跳转到登录页面...</p>
+                        <div class="countdown">将在 <span id="countdown">3</span> 秒后跳转</div>
+                    </div>
+                </div>
+
+                <div class="register-footer">
+                    <p>已有账户？ <a href="index.html" class="login-link">立即登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i data-lucide="loader-2"></i>
+            </div>
+            <span>处理中...</span>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notificationContainer"></div>
+
+    <script src="js/register_v2.js"></script>
+</body>
+</html>
